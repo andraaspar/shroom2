@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ai>
+<basic ids="0 1" />
+
+<a id="0" url="characters_tiled.png" f="0 1" fcc="3" tfc="3" />
+<a id="1" url="characters_colour_tiled.png" f="0 1" fcc="3" tfc="3" />
+
+<a id="10" url="explosion_1.mp3" />
+<a id="11" url="gong_1.mp3" />
+<a id="12" url="splash_1.mp3" />
+<a id="13" url="applause_01.mp3" />
+<a id="14" url="stone_3.mp3" />
+<a id="15" url="footstep_1.mp3" />
+<a id="16" url="pop_01.mp3" />
+<a id="17" url="explosion_2.mp3" />
+<a id="18" url="electric_01.mp3" />
+<a id="19" url="electric_02.mp3" />
+<a id="20" url="dawn_explosion_01.mp3" />
+
+<a id="50" url="explosion_02_tiled.png" f="0 1" fcc="5" tfc="10" ani="once:0-9" />
+<a id="51" url="shooting_star_01_tiled.png" f="0 1" fcc="5" tfc="20" ani="loop:0-19 sink:0-0" />
+<a id="52" url="bubble_gum_pop_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="once:0-9" />
+<a id="53" url="doughnut_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="loop:0-9 sink:0-0" />
+<a id="54" url="doughnut_explosion_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="once:0-9" />
+<a id="55" url="magic_ball_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="loop:0-9 sink:0-0" />
+<a id="56" url="tesla_ball_01_tiled.png" f="0 1" fcc="5" tfc="20" ani="loop:0-19 sink:0-0" />
+<a id="57" url="tesla_explosion_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="once:0-9" />
+<a id="58" url="dawn_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="once:0-9" />
+<a id="59" url="gun_01_tiled.png" f="0 1" fcc="5" tfc="10" ani="held:9-9 shoot:0-9" />
+<a id="60" url="gun_02_tiled.png" f="0 1" fcc="5" tfc="10" ani="held:9-9 shoot:0-9" />
+<a id="61" url="gun_03_tiled.png" f="0 1" fcc="5" tfc="10" ani="held:9-9 shoot:0-9" />
+<a id="62" url="gun_04_tiled.png" f="0 1" fcc="5" tfc="10" ani="held:9-9 shoot:0-9" />
+
+<a id="100" url="shroom_02_tiled.png" f="0 1" fcc="14" tfc="54" ani="stand:23-23 walk:24-43 ghost:11-22 sink:11-22 fly:11-22 cheer:1-10 wave:44-53 aim:0-0" />
+<a id="101" url="shroom_02_colour_tiled.png" f="0 1" fcc="14" tfc="54" />
+<a id="102" url="wildflower_01_tiled.png" f="0 1" fcc="13" tfc="52" ani="stand:21-21 walk:22-41 ghost:11-20 sink:11-20 fly:11-20 cheer:1-10 wave:42-51 aim:0-0" />
+<a id="103" url="wildflower_01_colour_tiled.png" f="0 1" fcc="13" tfc="52" />
+<a id="104" url="wolf_01_tiled.png" f="0 1" fcc="31" tfc="62" ani="stand:31-31 walk:32-51 ghost:21-30 sink:21-30 fly:21-30 cheer:1-20 wave:52-61 aim:0-0" />
+<a id="105" url="wolf_01_color_tiled.png" f="0 1" fcc="31" tfc="62" />
+
+<c id="0" n="Shroom" aa="100" ca="101" iws="12" hs="15" />
+<c id="1" n="Wildflower" aa="102" ca="103" iws="12" hs="15" />
+<c id="2" n="Wolf" aa="104" ca="105" iws="12" hs="15" />
+
+<ls id="0" tt="150" d="151" />
+
+<a id="150" url="earth_texture_03.png" />
+<a id="151" url="distance_01.jpg" />
+
+<a id="1000" url="level_01.png" f="0" />
+<a id="1001" url="level_01_background.jpg" f="0" />
+<a id="1002" url="level_01_distance.jpg" />
+<a id="1003" url="level_01_preview.jpg" />
+
+<l id="0" n="Floating islands" trn="1000" bg="1001" dst="1002" p="1003" wc="0:0xb5e7ff:1 10:0x54c8ff:1 64:0x00aafc:1 255:0x000000:1" />
+
+<a id="1004" url="level_02.png" f="2" />
+<a id="1005" url="level_02_background.png" f="2" />
+<a id="1006" url="level_02_distance.jpg" />
+<a id="1007" url="level_02_preview.jpg" />
+
+<l id="1" n="Two towers" trn="1004" bg="1005" dst="1006" p="1007" wc="0:0xe6ff90:1 10:0x8cb753:1 64:0x425839:1 255:0x000000:1" />
+
+<a id="1008" url="level_03.png" f="0" />
+<a id="1009" url="level_03_background.png" f="0" />
+<a id="1010" url="level_03_distance.jpg" />
+<a id="1011" url="level_03_preview.jpg" />
+
+<l id="2" n="Dragon! Dragon!" trn="1008" bg="1009" dst="1010" p="1011" wc="0:0xffe2b5:1 10:0xcd3d17:1 64:0x870000:1 255:0x000000:1" />
+
+<a id="1012" url="level_04.png" f="0" />
+<a id="1013" url="level_04_background.png" f="0" />
+<a id="1014" url="level_04_distance.jpg" />
+<a id="1015" url="level_04_preview.jpg" />
+
+<l id="3" n="The dead tree" trn="1012" bg="1013" dst="1014" p="1015" wc="0:0xb5e7ff:1 10:0x525d88:1 64:0x351400:1 255:0x000000:1" />
+
+<a id="1016" url="level_05.png" f="0" />
+<a id="1017" url="level_05_background.png" f="0" />
+<a id="1018" url="level_05_distance.jpg" />
+<a id="1019" url="level_05_preview.jpg" />
+
+<l id="4" n="Asteroid field" trn="1016" bg="1017" dst="1018" p="1019" wc="0:0xe6ff90:1 10:0x8cb753:1 64:0x425839:1 255:0x000000:1" />
+</ai>
