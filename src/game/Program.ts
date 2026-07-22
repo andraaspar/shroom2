@@ -1,36 +1,58 @@
 import { MessageBus, type ToProgram, type ToUI } from './events.ts'
-import { Gravity } from './Gravity.ts'
-import { World } from './World.ts'
+import { FrameCommands } from './FrameCommands.ts'
+import { Game } from './Game.ts'
+import { noopGameUI, type GameUI } from './GameUI.ts'
 
 /**
- * Root of the game logic. Will grow into the 1:1 port of
- * com.pirkadat.logic.Program (asset loading states) + Game (match states).
+ * Root of the game logic: the 1:1 port of com.pirkadat.logic.Program's
+ * STATE_WORKING frame (asset-loading states are out of scope).
  *
- * For now it owns the message buses and a World with gravity, which is
- * enough to run and verify the ported physics end to end.
+ * Frame order, matching the original onFrameEntered:
+ * 1. drain the toProgram bus into the per-frame FrameCommands bag
+ *    (replaces "mbToP = new MBToP()" + UI writing fields)
+ * 2. game.execute() — reads/writes the command bag, pushes toUI messages
+ * 3. recreate-on-destroy semantics (gameDestroyRequested -> spawnNew)
+ * 4. UI events are drained by the render/UI layer after execute()
  */
 export class Program {
 	readonly toProgram = new MessageBus<ToProgram>()
 	readonly toUI = new MessageBus<ToUI>()
 
-	world: World
+	readonly ui: GameUI
+	game: Game
 
-	constructor() {
-		this.world = new World()
-		this.world.forces.push(new Gravity())
+	private commands = new FrameCommands()
+
+	constructor(ui: GameUI = noopGameUI) {
+		this.ui = ui
+		this.game = new Game(this.toUI, this.ui)
 	}
 
 	/** One fixed simulation step (0.04s), matching the original onFrameEntered. */
 	execute(): void {
-		this.toProgram.drain((message) => this.handleCommand(message))
+		this.commands = new FrameCommands()
+		this.toProgram.drain((message) => {
+			if (message.type === 'weightModifyRound') {
+				const ctor = this.game.resolveRoundCtor(message.roundClass)
+				if (ctor) {
+					this.commands.weightModifyRound = ctor
+					this.commands.newRoundWeight = message.newWeight
+				}
+				return
+			}
+			this.commands.apply(message)
+		})
 
-		this.world.execute()
+		this.game.commands = this.commands
+		this.game.execute()
+
+		if (this.commands.gameDestroyRequested) {
+			this.game.destroy()
+			this.game = this.game.spawnNew()
+			this.game.commands = this.commands
+			this.game.execute()
+		}
 
 		// UI events are drained by the render/UI layer after execute().
-	}
-
-	private handleCommand(_message: ToProgram): void {
-		// Commands are handled here as the corresponding Program/Game
-		// functionality is ported (walking, aiming, team setup, ...).
 	}
 }

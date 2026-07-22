@@ -63,6 +63,34 @@ export class Terrain {
 		return false
 	}
 
+	/**
+	 * 1:1 replacement for WorldObject.mergeWithAlphaChannel: punches a hole
+	 * into the terrain using a 2r×2r mask placed at (topLeftX, topLeftY).
+	 *
+	 * The original copies the terrain alpha into a scratch red channel, then
+	 * copyPixels the hole map on top with mergeAlpha=false (destination
+	 * pixels fully replaced where the hole map is solid), then copies red
+	 * back to alpha. Net effect: terrain becomes empty wherever the hole
+	 * mask is solid (>= 128), unchanged elsewhere.
+	 */
+	subtractMap(map: Uint8Array, mapSize: number, topLeftX: number, topLeftY: number): void {
+		const ox = Math.round(topLeftX)
+		const oy = Math.round(topLeftY)
+		for (let my = 0; my < mapSize; my++) {
+			const ty = oy + my
+			if (ty < 0 || ty >= this.height) continue
+			const rowBase = ty * this.width
+			const mapRowBase = my * mapSize
+			for (let mx = 0; mx < mapSize; mx++) {
+				if (map[mapRowBase + mx]! < 128) continue
+				const tx = ox + mx
+				if (tx < 0 || tx >= this.width) continue
+				this.data[rowBase + tx] = 0
+			}
+		}
+		this.isDirty = true
+	}
+
 	clone(): Terrain {
 		return new Terrain(this.width, this.height, new Uint8Array(this.data))
 	}

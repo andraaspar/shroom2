@@ -1,5 +1,6 @@
 import { AirWalkForce } from './AirWalkForce.ts'
 import { DOUBLE_PI, HALF_PI, PI, Point } from './geom/Point.ts'
+import type { Team } from './Team.ts'
 import type { World } from './World.ts'
 import type { WorldForce } from './WorldForce.ts'
 
@@ -92,8 +93,7 @@ export class WorldObject {
 	friendlyDamage = 0
 	closestEnemyDistance = Infinity
 
-	/** Replaces the Team reference until teams are ported. */
-	team: unknown = null
+	team: Team | null = null
 	owner: WorldObject | null = null
 
 	static idCounter = 0
@@ -107,7 +107,7 @@ export class WorldObject {
 		| ((assetId: number, location: Point, delay: number, volume: number) => void)
 		| null = null
 
-	constructor(world: World | null = null, team: unknown = null, owner: WorldObject | null = null, id = NaN) {
+	constructor(world: World | null = null, team: Team | null = null, owner: WorldObject | null = null, id = NaN) {
 		if (isNaN(id)) this.id = WorldObject.idCounter++
 		else this.id = id
 		this.world = world
@@ -594,6 +594,11 @@ export class WorldObject {
 		if (this.hasFinishedWorking) return
 
 		this.health += value
+	}
+
+	/** Asset IDs needed to render/animate this object (asset phase). */
+	getAssetIDs(): number[] | null {
+		return null
 	}
 
 	restoreStaminaTo(value = 1): void {

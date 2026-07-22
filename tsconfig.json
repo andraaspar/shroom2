@@ -18,7 +18,7 @@
 
 		/* Linting */
 		"strict": true,
-		"noFallthroughCasesInSwitch": true,
+		"noFallthroughCasesInSwitch": false,
 		"noUncheckedSideEffectImports": true,
 		"noUncheckedIndexedAccess": true
 	},

@@ -36,6 +36,12 @@ export class Point {
 		}
 	}
 
+	/** Mutates this point in place, like flash.geom.Point.offset. */
+	offset(dx: number, dy: number): void {
+		this.x += dx
+		this.y += dy
+	}
+
 	static distance(pt1: Point, pt2: Point): number {
 		const dx = pt2.x - pt1.x
 		const dy = pt2.y - pt1.y

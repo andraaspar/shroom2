@@ -1,4 +1,6 @@
 import type { Point } from './geom/Point.ts'
+import type { Team } from './Team.ts'
+import type { TeamMember } from './TeamMember.ts'
 
 /**
  * Typed replacement for the original MBToP / MBToUI per-frame message bags.
@@ -47,6 +49,12 @@ export type ToProgram =
 	| { type: 'newWalkingSpeedMultiplier'; value: number }
 	| { type: 'membersPerTeam'; value: number }
 	| { type: 'helpRequested' }
+	| { type: 'allAssetsDownloaded' }
+	| { type: 'newSelectedTeamMember'; member: TeamMember }
+	| { type: 'newEditTeamID'; id: number }
+	| { type: 'newEditTeamName'; name: string }
+	| { type: 'newTeamController'; controller: number }
+	| { type: 'newTeamAILevel'; aiLevel: number }
 
 // ---------------------------------------------------------------------------
 // Program -> UI (replaces MBToUI)
@@ -77,8 +85,8 @@ export type ToUI =
 	| { type: 'newMessageBox'; text: string; time: number }
 	| { type: 'newState'; state: UIState }
 	| { type: 'newBounceCount'; value: number }
-	| { type: 'memberSelectionChanged' }
-	| { type: 'teamSelectionChanged' }
+	| { type: 'memberSelectionChanged'; member: TeamMember | null }
+	| { type: 'teamSelectionChanged'; team: Team | null }
 	| { type: 'newDoneButtonText'; text: string }
 	| { type: 'notSafeToDragMember' }
 	| { type: 'objectPlacement'; total: number; remaining: number }
@@ -88,9 +96,9 @@ export type ToUI =
 	| { type: 'newPreviewAsset'; assetId: number }
 	| { type: 'allAssetsDownloaded' }
 	| { type: 'levelPreviewDownloaded' }
-	| { type: 'winner' }
-	| { type: 'teamQueueUpdated' }
-	| { type: 'gameRoundsUpdated' }
+	| { type: 'winner'; team: Team }
+	| { type: 'teamQueueUpdated'; queue: Team[] }
+	| { type: 'gameRoundsUpdated'; rounds: unknown[] }
 	| { type: 'newHelpImage'; assetId: number }
 	| { type: 'newShunpoOptions'; options: Point[] }
 	| { type: 'newBulletSelected' }

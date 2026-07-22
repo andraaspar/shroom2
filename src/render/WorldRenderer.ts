@@ -1,5 +1,7 @@
 import type { Terrain } from '../game/Terrain.ts'
+import { TeamMember } from '../game/TeamMember.ts'
 import type { World } from '../game/World.ts'
+import type { WorldObject } from '../game/WorldObject.ts'
 import type { Camera } from './Camera.ts'
 
 /**
@@ -66,12 +68,37 @@ export class WorldRenderer {
 		ctx.drawImage(this.terrainCanvas, 0, 0)
 	}
 
-	private renderObject(ctx: CanvasRenderingContext2D, object: World['objects'][number]): void {
+	private renderObject(ctx: CanvasRenderingContext2D, object: WorldObject): void {
 		// Placeholder: draw the hit circle. Appearance classes (bitmaps,
-		// animations) replace this once assets are ported.
+		// animations) replace this once assets are ported. Team members get
+		// their team color; shots get a per-class placeholder color.
 		ctx.beginPath()
 		ctx.arc(object.location.x, object.location.y, object.radius, 0, Math.PI * 2)
-		ctx.fillStyle = '#ff99cc'
+		ctx.fillStyle = this.colorFor(object)
 		ctx.fill()
+
+		if (object instanceof TeamMember && object.isSelected) {
+			ctx.strokeStyle = '#ffffff'
+			ctx.lineWidth = 2 / (ctx.getTransform().a || 1)
+			ctx.stroke()
+		}
 	}
+
+	private colorFor(object: WorldObject): string {
+		if (object instanceof TeamMember) {
+			const color = object.team?.characterAppearance?.color ?? 0xff99cc
+			return '#' + color.toString(16).padStart(6, '0')
+		}
+		// Shots and other objects.
+		const name = object.constructor.name
+		return WorldRenderer.objectColors.get(name) ?? '#ff99cc'
+	}
+
+	private static objectColors = new Map<string, string>([
+		['ShootingStar', '#ffe066'],
+		['Doughnut', '#e070ff'],
+		['TeslaBall', '#66ccff'],
+		['DawnBall', '#ffaa33'],
+		['WorldObject', '#ff99cc'],
+	])
 }

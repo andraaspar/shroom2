@@ -2,8 +2,7 @@ import { defineComponent } from '../c-mp/fun/defineComponent'
 import { useEffect } from '../c-mp/fun/useEffect'
 import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
-import { Terrain } from '../game/Terrain'
-import { WorldObject } from '../game/WorldObject'
+import { noopGameUI } from '../game/GameUI'
 import { Camera } from '../render/Camera'
 import { WorldRenderer } from '../render/WorldRenderer'
 
@@ -16,28 +15,11 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		const ctx = canvas.getContext('2d')
 		if (!ctx) return
 
-		// --- Smoke-test world: flat terrain, one object dropped onto it. ---
-		const program = new Program()
-		const terrain = new Terrain(2000, 1000)
-		for (let x = 0; x < terrain.width; x++) {
-			for (let y = 700; y < terrain.height; y++) {
-				terrain.set(x, y, true)
-			}
-		}
-		program.world.terrain = terrain
-
-		const ball = new WorldObject(program.world)
-		ball.name = 'Test ball'
-		ball.health = 100
-		ball.calculateHitSets()
-		ball.location.x = 1000
-		ball.location.y = 100
-		program.world.addWorldObject(ball)
+		// --- Program + Game (headless UI; keyboard debug controls below). ---
+		const program = new Program(noopGameUI)
 
 		// --- Camera + renderer ---
 		const camera = new Camera()
-		camera.center.x = terrain.width / 2
-		camera.center.y = terrain.height / 2
 		const renderer = new WorldRenderer()
 
 		function resize() {
@@ -73,13 +55,70 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		canvas.addEventListener('mousemove', onMouseMove)
 		canvas.addEventListener('wheel', onWheel, { passive: false })
 
+		// --- Keyboard debug UI: arrows/space/enter mapped to bus commands. ---
+		const keyMap: Record<string, { down: () => void; up: () => void }> = {
+			ArrowLeft: {
+				down: () => program.toProgram.push({ type: 'leftChanged', active: true }),
+				up: () => program.toProgram.push({ type: 'leftChanged', active: false }),
+			},
+			ArrowRight: {
+				down: () => program.toProgram.push({ type: 'rightChanged', active: true }),
+				up: () => program.toProgram.push({ type: 'rightChanged', active: false }),
+			},
+			ArrowUp: {
+				down: () => program.toProgram.push({ type: 'upChanged', active: true }),
+				up: () => program.toProgram.push({ type: 'upChanged', active: false }),
+			},
+			ArrowDown: {
+				down: () => program.toProgram.push({ type: 'downChanged', active: true }),
+				up: () => program.toProgram.push({ type: 'downChanged', active: false }),
+			},
+			' ': {
+				down: () => program.toProgram.push({ type: 'fire1Changed', active: true }),
+				up: () => program.toProgram.push({ type: 'fire1Changed', active: false }),
+			},
+			Enter: {
+				down: () => program.toProgram.push({ type: 'endTurnRequested' }),
+				up: () => {},
+			},
+			Tab: {
+				down: () => program.toProgram.push({ type: 'switchMemberRequested' }),
+				up: () => {},
+			},
+		}
+		const onKeyDown = (e: KeyboardEvent) => {
+			const binding = keyMap[e.key]
+			if (!binding) return
+			e.preventDefault()
+			if (!e.repeat) binding.down()
+		}
+		const onKeyUp = (e: KeyboardEvent) => {
+			const binding = keyMap[e.key]
+			if (!binding) return
+			e.preventDefault()
+			binding.up()
+		}
+		addEventListener('keydown', onKeyDown)
+		addEventListener('keyup', onKeyUp)
+
+		// Start the game immediately (skips the setup window for now).
+		program.toProgram.push({ type: 'gameStartRequested' })
+
 		// --- Fixed-timestep loop ---
+		let cameraInitialized = false
 		const loop = new GameLoop(
 			() => program.execute(),
 			() => {
 				if (!canvas) return
+				const world = program.game.world
+				if (!cameraInitialized && world.terrain) {
+					camera.center.x = world.terrain.width / 2
+					camera.center.y = world.terrain.height / 2
+					cameraInitialized = true
+				}
 				ctx.clearRect(0, 0, canvas.width, canvas.height)
-				renderer.render(ctx, program.world, camera)
+				renderer.render(ctx, world, camera)
+				program.toUI.clear()
 			},
 		)
 		loop.start()
@@ -88,6 +127,8 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			loop.stop()
 			removeEventListener('resize', resize)
 			removeEventListener('mouseup', onMouseUp)
+			removeEventListener('keydown', onKeyDown)
+			removeEventListener('keyup', onKeyUp)
 			canvas?.removeEventListener('mousedown', onMouseDown)
 			canvas?.removeEventListener('mousemove', onMouseMove)
 			canvas?.removeEventListener('wheel', onWheel)
