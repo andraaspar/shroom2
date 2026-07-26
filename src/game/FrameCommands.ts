@@ -69,6 +69,9 @@ export class FrameCommands {
 
 	helpRequested = false
 
+	editTeamAppearanceId = NaN
+	editTeamAppearanceIndex = NaN
+
 	/** Folds one bus message into the bag. */
 	apply(message: ToProgram): void {
 		switch (message.type) {
@@ -174,6 +177,10 @@ export class FrameCommands {
 				break
 			case 'helpRequested':
 				this.helpRequested = true
+				break
+			case 'editTeamAppearance':
+				this.editTeamAppearanceId = message.id
+				this.editTeamAppearanceIndex = message.appearanceIndex
 				break
 		}
 	}

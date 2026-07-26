@@ -257,30 +257,42 @@ export class Game {
 				this.setState(Game.STATE_SETUP)
 			// falls through
 			case Game.STATE_SETUP:
+				let setupChanged = false
 				if (mbToP.helpRequested) this.getHelpSection('#custom_games')
-				if (mbToP.addTeamRequested) this.addTeam()
-				if (!isNaN(mbToP.newEditTeamID)) this.editTeamByID(mbToP.newEditTeamID)
-				if (mbToP.newEditTeamName != null) this.editedTeam!.name = mbToP.newEditTeamName
-				if (mbToP.newTeamAppearance) this.setTeamAppearance(mbToP.newTeamAppearance)
-				if (!isNaN(mbToP.newTeamController)) this.editedTeam!.controller = mbToP.newTeamController
-				if (!isNaN(mbToP.newTeamAILevel)) this.editedTeam!.aiLevel = mbToP.newTeamAILevel
-				if (mbToP.removeTeamRequested) this.removeEditedTeam()
+				if (mbToP.addTeamRequested) { this.addTeam(); setupChanged = true }
+				if (!isNaN(mbToP.newEditTeamID)) { this.editTeamByID(mbToP.newEditTeamID); setupChanged = true }
+				if (mbToP.newEditTeamName != null) { this.editedTeam!.name = mbToP.newEditTeamName; setupChanged = true }
+				if (mbToP.newTeamAppearance) { this.setTeamAppearance(mbToP.newTeamAppearance); setupChanged = true }
+				if (!isNaN(mbToP.newTeamController)) { this.editedTeam!.controller = mbToP.newTeamController; setupChanged = true }
+				if (!isNaN(mbToP.newTeamAILevel)) { this.editedTeam!.aiLevel = mbToP.newTeamAILevel; setupChanged = true }
+				if (mbToP.removeTeamRequested) { this.removeEditedTeam(); setupChanged = true }
 				if (mbToP.membersPerTeam) {
 					this.membersPerTeam = Math.max(1, Math.min(99, mbToP.membersPerTeam))
 					this.toUI.push({ type: 'membersPerTeam', value: this.membersPerTeam })
+					setupChanged = true
+				}
+				if (!isNaN(mbToP.editTeamAppearanceId)) {
+					this.editTeamByID(mbToP.editTeamAppearanceId)
+					const ca = this.characterAppearances[mbToP.editTeamAppearanceIndex]
+					if (ca) this.setTeamAppearance(ca)
+					setupChanged = true
 				}
 				if (mbToP.newSelectedLevel) {
-					// PaintedLevel is out of scope this phase.
 					this.toUI.push({ type: 'newLevel' })
+					setupChanged = true
 				} else if (mbToP.newRandomLevelRequested) {
 					if (this.level) this.level.onDestroy()
 					this.level = new GeneratedLevel()
 					this.toUI.push({ type: 'newLevel' })
+					setupChanged = true
 				}
-				if (mbToP.weightModifyRound) this.setRoundWeight(mbToP.weightModifyRound, mbToP.newRoundWeight)
+				if (mbToP.weightModifyRound) { this.setRoundWeight(mbToP.weightModifyRound, mbToP.newRoundWeight); setupChanged = true }
 				if (mbToP.allAssetsDownloaded && this.level.getIsLoadingPreview()) {
 					this.level.onPreviewDownloaded()
 				}
+
+				if (setupChanged) this.toUI.push({ type: 'setupStateChanged' })
+
 				if (mbToP.gameStartRequested) {
 					this.setState(Game.STATE_LOADING)
 				} else {

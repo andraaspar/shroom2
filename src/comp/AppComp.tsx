@@ -8,14 +8,57 @@ import { GameUIImpl } from '../ui/GameUIImpl'
 import { uiState } from '../ui/state'
 import { ModalHostComp } from '../ui/ModalHostComp'
 import { StartScreenComp, programBusSymbol } from '../ui/StartScreenComp'
+import { GameSetupComp } from '../ui/GameSetupComp'
 import { Camera } from '../render/Camera'
 import { WorldRenderer } from '../render/WorldRenderer'
+import type { SetupTeamEntry, SetupRoundWeightEntry } from '../ui/state'
+import type { GameRound, RoundCtor } from '../game/rounds/GameRound'
+
+const ROUND_DISPLAY_NAMES: Record<string, string> = {
+	MoveRound: 'Moving',
+	MoonwalkRound: 'Moonwalking',
+	DoubleMoveRound: 'Running',
+	ShunpoRound: 'Shunpo',
+	ShootRound: 'Shooting Star',
+	DoughnutRound: 'Doughnut',
+	TeslaRound: 'Tesla',
+	DawnRound: 'Dawn',
+}
 
 const gameUIImpl = new GameUIImpl()
 const program = new Program(gameUIImpl)
 
 export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 	let canvas: HTMLCanvasElement | null = null
+
+	function syncSetupState() {
+		const game = program.game
+		uiState.setupTeams = game.teams.map((team, idx) => ({
+			id: idx,
+			name: team.name,
+			memberCount: team.members.length,
+			controller: team.controller,
+			aiLevel: team.aiLevel,
+			appearanceName: team.characterAppearance?.characterName ?? '',
+			appearanceColor: team.characterAppearance?.color ?? 0xff99cc,
+		}))
+		uiState.setupEditedTeamIndex = game.teams.indexOf(game.editedTeam!)
+		uiState.setupMembersPerTeam = game.membersPerTeam
+		uiState.setupRoundWeights = [...game.roundWeights.entries()].map(([ctor, weight]) => ({
+			className: ctor.name,
+			displayName: ROUND_DISPLAY_NAMES[ctor.name] ?? ctor.name,
+			weight,
+			isMoveRound: game.moveRoundClasses.includes(ctor),
+		}))
+		uiState.setupLevelName = 'Generated Level'
+		uiState.setupAvailableAppearances = game.characterAppearances.map((ca, idx) => ({
+			characterName: ca.characterName,
+			color: ca.color,
+			colorNumber: ca.colorNumber,
+			index: idx,
+		}))
+		uiState.setupInitialized = true
+	}
 
 	useEffect('game effect', () => {
 		if (!canvas) return
@@ -114,6 +157,20 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			() => {
 				if (!canvas) return
 
+				// Handle setup screen
+				if (uiState.screen === 'setup') {
+					if (!uiState.setupInitialized) {
+						mutateState('AppComp', 'initSetup', () => syncSetupState())
+					}
+					program.toUI.drain((msg) => {
+						if (msg.type === 'setupStateChanged') {
+							mutateState('AppComp', 'setupStateChanged', () => syncSetupState())
+						}
+					})
+					program.toUI.clear()
+					return
+				}
+
 				if (uiState.screen !== 'game' || !program.game.world.terrain) {
 					program.toUI.clear()
 					return
@@ -195,6 +252,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 	return (
 		<div>
 			<Show it={$when(() => uiState.screen === 'start', StartScreenComp)} />
+			<Show it={$when(() => uiState.screen === 'setup', GameSetupComp)} />
 			<canvas
 				ref={(it) => (canvas = it)}
 				class='ccc_canvas'

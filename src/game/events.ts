@@ -55,6 +55,7 @@ export type ToProgram =
 	| { type: 'newEditTeamName'; name: string }
 	| { type: 'newTeamController'; controller: number }
 	| { type: 'newTeamAILevel'; aiLevel: number }
+	| { type: 'editTeamAppearance'; id: number; appearanceIndex: number }
 
 // ---------------------------------------------------------------------------
 // Program -> UI (replaces MBToUI)
@@ -103,6 +104,7 @@ export type ToUI =
 	| { type: 'newShunpoOptions'; options: Point[] }
 	| { type: 'newBulletSelected' }
 	| { type: 'roundWeightsUpdated' }
+	| { type: 'setupStateChanged' }
 
 // ---------------------------------------------------------------------------
 // Bus

@@ -31,6 +31,7 @@ export class GameUIImpl implements GameUI {
 		mutateState('GameUIImpl', 'showWorldWindow', () => {
 			uiState.screen = 'game'
 			uiState.showCanvas = true
+			uiState.setupInitialized = false
 		})
 	}
 

@@ -1,2 +1,3 @@
 @import './normal/ccc_canvas.css' layer(normal);
 @import './start-screen.css' layer(ui);
+@import './setup-screen.css' layer(ui);

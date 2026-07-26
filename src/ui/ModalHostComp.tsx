@@ -3,8 +3,13 @@ import { Slot } from '../c-mp/comp/Slot'
 import { $when, Show } from '../c-mp/comp/Show'
 import { For } from '../c-mp/comp/For'
 import { uiState } from './state'
+import { mutateState } from '../c-mp/fun/useState'
 import { ProgressBarComp } from './ProgressBarComp'
 import type { GameUIImpl } from './GameUIImpl'
+import type { ToProgram } from '../game/events'
+import { programBusSymbol } from './StartScreenComp'
+import { AppearancePickerContent } from './AppearancePickerComp'
+import { ControllerPickerContent } from './ControllerPickerComp'
 
 export interface ModalHostProps {
 	getGameUI: () => GameUIImpl
@@ -100,6 +105,8 @@ export const ModalHostComp = defineComponent<ModalHostProps>('ModalHostComp', (p
 			<Show it={$when(() => uiState.modal?.type === 'image' ? uiState.modal : null, ImageContent)} />
 			<Show it={$when(() => uiState.modal?.type === 'progress' ? uiState.modal : null, ProgressContent)} />
 			<Show it={$when(() => uiState.modal?.type === 'prompt' ? uiState.modal : null, PromptContent)} />
+			<Show it={$when(() => uiState.modal?.type === 'appearance-picker' ? uiState.modal : null, AppearancePickerContent)} />
+			<Show it={$when(() => uiState.modal?.type === 'controller-picker' ? uiState.modal : null, ControllerPickerContent)} />
 		</div>
 	)
 })
