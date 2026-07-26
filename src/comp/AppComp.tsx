@@ -1,11 +1,13 @@
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { useEffect } from '../c-mp/fun/useEffect'
 import { mutateState } from '../c-mp/fun/useState'
+import { $when, Show } from '../c-mp/comp/Show'
 import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
 import { GameUIImpl } from '../ui/GameUIImpl'
 import { uiState } from '../ui/state'
 import { ModalHostComp } from '../ui/ModalHostComp'
+import { StartScreenComp, programBusSymbol } from '../ui/StartScreenComp'
 import { Camera } from '../render/Camera'
 import { WorldRenderer } from '../render/WorldRenderer'
 
@@ -27,6 +29,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 
 		function resize() {
 			if (!canvas) return
+			if (!canvas.clientWidth || !canvas.clientHeight) return
 			canvas.width = canvas.clientWidth * devicePixelRatio
 			canvas.height = canvas.clientHeight * devicePixelRatio
 			camera.fitToViewport(canvas.width, canvas.height)
@@ -104,15 +107,17 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		addEventListener('keydown', onKeyDown)
 		addEventListener('keyup', onKeyUp)
 
-		// Start the game immediately (skips the setup window for now).
-		program.toProgram.push({ type: 'gameStartRequested' })
-
 		// --- Fixed-timestep loop ---
 		let cameraInitialized = false
 		const loop = new GameLoop(
 			() => program.execute(),
 			() => {
 				if (!canvas) return
+
+				if (uiState.screen !== 'game' || !program.game.world.terrain) {
+					program.toUI.clear()
+					return
+				}
 
 				// Drain toUI messages into reactive state
 				program.toUI.drain((msg) => {
@@ -185,9 +190,16 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		}
 	})
 
+	$.setContext(programBusSymbol, program.toProgram)
+
 	return (
 		<div>
-			<canvas ref={(it) => (canvas = it)} class='ccc_canvas' />
+			<Show it={$when(() => uiState.screen === 'start', StartScreenComp)} />
+			<canvas
+				ref={(it) => (canvas = it)}
+				class='ccc_canvas'
+				style={() => uiState.screen !== 'game' ? { display: 'none' } : { display: 'block' }}
+			/>
 			<ModalHostComp getGameUI={() => gameUIImpl} />
 		</div>
 	)
