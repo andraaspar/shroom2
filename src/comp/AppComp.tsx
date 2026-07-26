@@ -1,10 +1,16 @@
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { useEffect } from '../c-mp/fun/useEffect'
+import { mutateState } from '../c-mp/fun/useState'
 import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
-import { noopGameUI } from '../game/GameUI'
+import { GameUIImpl } from '../ui/GameUIImpl'
+import { uiState } from '../ui/state'
+import { ModalHostComp } from '../ui/ModalHostComp'
 import { Camera } from '../render/Camera'
 import { WorldRenderer } from '../render/WorldRenderer'
+
+const gameUIImpl = new GameUIImpl()
+const program = new Program(gameUIImpl)
 
 export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 	let canvas: HTMLCanvasElement | null = null
@@ -14,9 +20,6 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 
 		const ctx = canvas.getContext('2d')
 		if (!ctx) return
-
-		// --- Program + Game (headless UI; keyboard debug controls below). ---
-		const program = new Program(noopGameUI)
 
 		// --- Camera + renderer ---
 		const camera = new Camera()
@@ -31,7 +34,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		resize()
 		addEventListener('resize', resize)
 
-		// --- Pan / zoom (replaces WorldWindow mouse handling) ---
+		// --- Pan / zoom ---
 		let dragLast: { x: number; y: number } | null = null
 		const onMouseDown = (e: MouseEvent) => (dragLast = { x: e.offsetX, y: e.offsetY })
 		const onMouseUp = () => (dragLast = null)
@@ -55,7 +58,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		canvas.addEventListener('mousemove', onMouseMove)
 		canvas.addEventListener('wheel', onWheel, { passive: false })
 
-		// --- Keyboard debug UI: arrows/space/enter mapped to bus commands. ---
+		// --- Keyboard debug UI ---
 		const keyMap: Record<string, { down: () => void; up: () => void }> = {
 			ArrowLeft: {
 				down: () => program.toProgram.push({ type: 'leftChanged', active: true }),
@@ -110,6 +113,53 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			() => program.execute(),
 			() => {
 				if (!canvas) return
+
+				// Drain toUI messages into reactive state
+				program.toUI.drain((msg) => {
+					switch (msg.type) {
+						case 'newMessageBox':
+							mutateState('AppComp', 'newMessageBox', () => {
+								uiState.messageBox = { text: msg.text, time: msg.time, remaining: msg.time }
+							})
+							break
+						case 'newDoneButtonText':
+							mutateState('AppComp', 'newDoneButtonText', () => {
+								uiState.doneButtonText = msg.text
+							})
+							break
+						case 'newBounceCount':
+							mutateState('AppComp', 'newBounceCount', () => {
+								uiState.bounceCount = msg.value
+							})
+							break
+						case 'teamQueueUpdated':
+							mutateState('AppComp', 'teamQueueUpdated', () => {
+								uiState.teamQueue = msg.queue
+							})
+							break
+						case 'gameRoundsUpdated':
+							mutateState('AppComp', 'gameRoundsUpdated', () => {
+								uiState.gameRounds = msg.rounds
+							})
+							break
+						case 'newState':
+							mutateState('AppComp', 'newState', () => {
+								uiState.uiState = msg.state
+							})
+							break
+						case 'memberSelectionChanged':
+							mutateState('AppComp', 'memberSelectionChanged', () => {
+								uiState.currentMemberName = msg.member?.name ?? ''
+							})
+							break
+						case 'teamSelectionChanged':
+							mutateState('AppComp', 'teamSelectionChanged', () => {
+								uiState.currentTeamName = msg.team?.name ?? ''
+							})
+							break
+					}
+				})
+
 				const world = program.game.world
 				if (!cameraInitialized && world.terrain) {
 					camera.center.x = world.terrain.width / 2
@@ -135,5 +185,10 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		}
 	})
 
-	return <canvas ref={(it) => (canvas = it)} class='ccc_canvas' />
+	return (
+		<div>
+			<canvas ref={(it) => (canvas = it)} class='ccc_canvas' />
+			<ModalHostComp getGameUI={() => gameUIImpl} />
+		</div>
+	)
 })
