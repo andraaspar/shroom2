@@ -1,6 +1,7 @@
 import type { MessageBus, ToUI } from './events.ts'
 import { HALF_PI, Point } from './geom/Point.ts'
 import type { Shot } from './Shot.ts'
+import { ShootingStar } from './ShootingStar.ts'
 import type { Team } from './Team.ts'
 import { WorldObject } from './WorldObject.ts'
 import type { World } from './World.ts'
@@ -38,7 +39,7 @@ export class TeamMember extends WorldObject {
 
 	hasBeenSelected = true
 
-	static bullet: ShotCtor | null = null
+	static bullet: ShotCtor = ShootingStar
 
 	/** Replaces Program.mbToUI for selection events. */
 	static toUI: MessageBus<ToUI> | null = null

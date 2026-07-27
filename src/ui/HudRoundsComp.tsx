@@ -1,4 +1,5 @@
 import { For } from '../c-mp/comp/For'
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { uiState } from './state'
 
@@ -9,20 +10,21 @@ const HudRoundsComp = defineComponent('HudRoundsComp', (_props, $) => {
 				debugName='hud-rounds'
 				each={() => uiState.gameRounds}
 				getKey={(_, i) => i}
-				render={({ get, getIndex }) => {
-					const round = get()
-					const idx = getIndex()
-					const name = (round as any).getName?.() ?? `Round ${idx}`
-					const isCurrent = idx === 0
-					return (
-						<button
-							class={'hud-round-btn' + (isCurrent ? ' hud-round-btn-current' : '')}
-							disabled
-						>
-							{name}
-						</button>
-					)
-				}}
+				render={({ get, getIndex }) => (
+					<button
+						class={() => {
+							const idx = getIndex()
+							return 'hud-round-btn' + (idx === 0 ? ' hud-round-btn-current' : '')
+						}}
+						disabled
+					>
+						<Slot get={() => {
+							const round = get()
+							const idx = getIndex()
+							return (round as any).getName?.() ?? `Round ${idx}`
+						}} />
+					</button>
+				)}
 			/>
 		</div>
 	)

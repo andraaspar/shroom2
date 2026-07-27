@@ -40,8 +40,7 @@ const ControllerPickerContent = defineComponent('ControllerPickerContent', (_pro
 							const isSelected = opt.controller === currentController() && opt.aiLevel === currentAiLevel()
 							return (
 								<div
-									class='controller-option'
-									class:selected={isSelected}
+									class={'controller-option' + (isSelected ? ' selected' : '')}
 									onclick={() => {
 										programBus?.push({
 											type: 'editTeam',

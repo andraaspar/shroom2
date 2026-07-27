@@ -127,7 +127,6 @@ export class Game {
 		this.ui = ui
 
 		this.world = new World()
-		this.world.forces.push(new Gravity())
 		this.teams = []
 
 		this.level = new GeneratedLevel()
@@ -363,6 +362,7 @@ export class Game {
 	}
 
 	protected start(): void {
+		this.world.forces.push(new Gravity())
 		this.world.terrain = this.level.getTerrain()
 
 		const objectsToPlace: WorldObject[] = []

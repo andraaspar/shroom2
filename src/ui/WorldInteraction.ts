@@ -7,7 +7,6 @@ import type { World } from '../game/World'
 const HALF_PI = Math.PI / 2
 const DRAG_THRESHOLD = 5
 const MAX_DRAG_DISTANCE = 300
-const MAX_POWER_DISTANCE = 500
 
 export class WorldInteraction {
 	isDragging = false
@@ -96,11 +95,7 @@ export class WorldInteraction {
 		angle = Math.max(-HALF_PI, Math.min(HALF_PI, angle))
 		const facing: 1 | -1 = worldPos.x < member.location.x ? -1 : 1
 
-		const distance = Point.distance(worldPos, member.location)
-		const power = Math.min(distance / MAX_POWER_DISTANCE, 1)
-
 		bus.push({ type: 'newAim', angle, facing })
-		bus.push({ type: 'newPowerMultiplier', value: power })
 	}
 
 	crosshairClick(bus: MessageBus<ToProgram>): void {

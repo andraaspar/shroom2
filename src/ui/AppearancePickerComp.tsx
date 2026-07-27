@@ -36,8 +36,7 @@ const AppearancePickerContent = defineComponent('AppearancePickerContent', (_pro
 						getKey={(_, i) => i}
 						render={({ get, getIndex }) => (
 							<div
-								class='appearance-cell'
-								class:selected={getIndex() === selectedIndex()}
+								class={() => ['appearance-cell', getIndex() === selectedIndex() && 'selected']}
 								onclick={() => {
 									programBus?.push({ type: 'editTeamAppearance', id: teamIndex(), appearanceIndex: get().index })
 									close()

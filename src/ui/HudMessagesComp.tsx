@@ -1,13 +1,12 @@
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { useEffect } from '../c-mp/fun/useEffect'
 import { mutateState } from '../c-mp/fun/useState'
 import { uiState } from './state'
 
 const HudMessagesComp = defineComponent('HudMessagesComp', (_props, $) => {
-	const text = uiState.messageBox.text
-	const remaining = uiState.messageBox.remaining
-
-	useEffect('message auto-clear:' + text, () => {
+	useEffect('message auto-clear', () => {
+		const text = uiState.messageBox.text
 		if (!text) return
 
 		const duration = uiState.messageBox.time
@@ -34,13 +33,21 @@ const HudMessagesComp = defineComponent('HudMessagesComp', (_props, $) => {
 		return () => clearInterval(interval)
 	})
 
-	const isPersistent = uiState.messageBox.time < 0
-	const fadeOut = !isPersistent && remaining < 500
-	const opacityVal = fadeOut ? remaining / 500 : 1
-
 	return (
-		<div class='hud-messages' style={{ opacity: String(opacityVal), display: text ? undefined : 'none' }}>			
-<span class='hud-messages-text'>{text}</span>
+		<div
+			class='hud-messages'
+			style={() => {
+				const text = uiState.messageBox.text
+				const remaining = uiState.messageBox.remaining
+				const isPersistent = uiState.messageBox.time < 0
+				const fadeOut = !isPersistent && remaining < 500
+				const opacityVal = fadeOut ? remaining / 500 : 1
+				return { opacity: String(opacityVal), display: text ? undefined : 'none' }
+			}}
+		>
+			<span class='hud-messages-text'>
+				<Slot get={() => uiState.messageBox.text} />
+			</span>
 		</div>
 	)
 })

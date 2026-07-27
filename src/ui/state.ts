@@ -86,5 +86,6 @@ export const uiState = useState('uiState', {
 	gameRounds: [] as unknown[],
 	teamMembers: [] as Array<{ name: string; health: number }>,
 	menuVisible: false,
+	controller: 0 as number,
 	shunpoOptions: [] as Point[],
 })

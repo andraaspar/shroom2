@@ -6,6 +6,7 @@ import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
 import { Camera } from '../render/Camera'
 import { TeamMember } from '../game/TeamMember'
+import { Team } from '../game/Team'
 import { WorldRenderer } from '../render/WorldRenderer'
 import { GameMenuComp } from '../ui/GameMenuComp'
 import { GameSetupComp } from '../ui/GameSetupComp'
@@ -93,6 +94,9 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		resize()
 		addEventListener('resize', resize)
 
+		let lastResizeW = 0
+		let lastResizeH = 0
+
 		function findSelectedMember(world: typeof program.game.world): TeamMember | null {
 			for (const object of world.objects) {
 				if (object instanceof TeamMember && object.isSelected && object.health > 0) return object
@@ -103,6 +107,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		// --- Pan / zoom: middle-click and right-click drag, scroll wheel zoom ---
 		let dragLast: { x: number; y: number } | null = null
 		const onMouseDown = (e: MouseEvent) => {
+			if (uiState.controller !== Team.CONTROLLER_HUMAN && e.button === 0) return
 			if (e.button === 1 || e.button === 2) {
 				dragLast = { x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio }
 				return
@@ -192,7 +197,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault()
 			camera.zoomAt(
-				{ x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio } as never,
+				new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio),
 				e.deltaY < 0 ? 1.1 : 1 / 1.1,
 			)
 		}
@@ -235,12 +240,14 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			},
 		}
 		const onKeyDown = (e: KeyboardEvent) => {
+			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
 			const binding = keyMap[e.key]
 			if (!binding) return
 			e.preventDefault()
 			if (!e.repeat) binding.down()
 		}
 		const onKeyUp = (e: KeyboardEvent) => {
+			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
 			const binding = keyMap[e.key]
 			if (!binding) return
 			e.preventDefault()
@@ -324,10 +331,45 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 								uiState.shunpoOptions = msg.options
 							})
 							break
+						case 'newController':
+							mutateState('AppComp', 'newController', () => {
+								uiState.controller = msg.controller
+							})
+							break
 					}
 				})
 
 				const world = program.game.world
+
+				// Re-sync team health each frame (no health-update toUI message exists)
+				if (uiState.currentTeamName) {
+					const liveTeam = program.game.teams.find(t => t.name === uiState.currentTeamName)
+					if (liveTeam) {
+						const liveMembers = liveTeam.members.map(m => ({ name: m.name, health: m.health }))
+						let changed = liveMembers.length !== uiState.teamMembers.length
+						if (!changed) {
+							for (let i = 0; i < liveMembers.length; i++) {
+								if (liveMembers[i]!.health !== uiState.teamMembers[i]?.health) {
+									changed = true
+									break
+								}
+							}
+						}
+						if (changed) {
+							mutateState('AppComp', 'syncHealth', () => {
+								uiState.teamMembers = liveMembers
+							})
+						}
+					}
+				}
+
+				// Re-sync canvas size when visible
+				if (canvas.clientWidth !== lastResizeW || canvas.clientHeight !== lastResizeH) {
+					lastResizeW = canvas.clientWidth
+					lastResizeH = canvas.clientHeight
+					resize()
+				}
+
 				if (!cameraInitialized && world.terrain) {
 					camera.center.x = world.terrain.width / 2
 					camera.center.y = world.terrain.height / 2
@@ -357,7 +399,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 	$.setContext(programBusSymbol, program.toProgram)
 
 	return (
-		<div>
+		<div style={{ position: 'fixed', inset: '0' }}>
 			<Show it={$when(() => uiState.screen === 'start', StartScreenComp)} />
 			<Show it={$when(() => uiState.screen === 'setup', GameSetupComp)} />
 			<canvas

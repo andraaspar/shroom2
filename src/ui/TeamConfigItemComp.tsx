@@ -1,3 +1,4 @@
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { uiState } from './state'
 import { mutateState } from '../c-mp/fun/useState'
@@ -69,23 +70,23 @@ const TeamConfigItemComp = defineComponent<TeamConfigItemCompProps>('TeamConfigI
 	}
 
 	const onRemove = () => {
+		programBus?.push({ type: 'editTeam', id: props.getIndex() })
 		programBus?.push({ type: 'removeTeamRequested' })
-		programBus?.push({ type: 'editTeam', id: 0 })
 	}
 
 	return (
-		<div class='team-item' class:team-item-selected={isEdited}>
+		<div class={() => ['team-item', isEdited() && 'team-item-selected']}>
 			<input class='team-name-input' value={team().name} oninput={onNameChange} />
 			<div class='team-member-count'>
 				<button onclick={onMemberDec}>-</button>
-				<span>{String(uiState.setupMembersPerTeam)}</span>
+				<span><Slot get={() => String(uiState.setupMembersPerTeam)} /></span>
 				<button onclick={onMemberInc}>+</button>
 			</div>
 			<a class='team-appearance-link' onclick={onAppearancePicker}>
-				{team().appearanceName}
+				<Slot get={() => team().appearanceName} />
 			</a>
 			<a class='team-controller-link' onclick={onControllerPicker}>
-				{controllerLabel()}
+				<Slot get={controllerLabel} />
 			</a>
 			<button class='team-remove-btn' onclick={onRemove}>×</button>
 		</div>

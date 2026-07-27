@@ -1,3 +1,4 @@
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import type { ToProgram } from '../game/events'
 import { programBusSymbol } from './StartScreenComp'
@@ -22,10 +23,10 @@ const RoundWeightItemComp = defineComponent<RoundWeightItemCompProps>('RoundWeig
 
 	return (
 		<div class='round-weight-item'>
-			<span class='round-weight-label'>{entry().displayName}</span>
+			<span class='round-weight-label'><Slot get={() => entry().displayName} /></span>
 			<div class='round-weight-controls'>
 				<button class='round-weight-btn' onclick={onDec}>-</button>
-				<span class='round-weight-value'>{String(entry().weight)}</span>
+				<span class='round-weight-value'><Slot get={() => String(entry().weight)} /></span>
 				<button class='round-weight-btn' onclick={onInc}>+</button>
 			</div>
 		</div>

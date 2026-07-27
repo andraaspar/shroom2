@@ -1,4 +1,5 @@
 import { For } from '../c-mp/comp/For'
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { uiState } from './state'
 
@@ -9,21 +10,25 @@ const HudTeamQueueComp = defineComponent('HudTeamQueueComp', (_props, $) => {
 				debugName='hud-team-queue'
 				each={() => uiState.teamQueue}
 				getKey={(team) => team.name}
-				render={({ get }) => {
-					const team = get()
-					const isCurrent = team.name === uiState.currentTeamName
-					const color = team.characterAppearance?.color ?? 0x999999
-					const hexColor = '#' + color.toString(16).padStart(6, '0')
-					return (
-						<button
-							class={'hud-team-queue-btn' + (isCurrent ? ' hud-team-queue-btn-current' : '')}
-							disabled
-						>
-							<span class='hud-team-queue-indicator' style={{ backgroundColor: hexColor }} />
-							<span class='hud-team-queue-name'>{team.name}</span>
-						</button>
-					)
-				}}
+				render={({ get }) => (
+					<button
+						class={() => {
+							const team = get()
+							return 'hud-team-queue-btn' + (team.name === uiState.currentTeamName ? ' hud-team-queue-btn-current' : '')
+						}}
+						disabled
+					>
+						<span
+							class='hud-team-queue-indicator'
+							style={() => {
+								const team = get()
+								const color = team.characterAppearance?.color ?? 0x999999
+								return { backgroundColor: '#' + color.toString(16).padStart(6, '0') }
+							}}
+						/>
+						<span class='hud-team-queue-name'><Slot get={() => get().name} /></span>
+					</button>
+				)}
 			/>
 		</div>
 	)

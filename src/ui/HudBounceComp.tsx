@@ -1,3 +1,4 @@
+import { Slot } from '../c-mp/comp/Slot'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import type { ToProgram } from '../game/events'
 import { programBusSymbol } from './StartScreenComp'
@@ -15,7 +16,9 @@ const HudBounceComp = defineComponent('HudBounceComp', (_props, $) => {
 			<button class='hud-bounce-btn' onclick={() => onBounceChange(uiState.bounceCount - 1)}>
 				-1
 			</button>
-			<span class='hud-bounce-value'>{String(uiState.bounceCount)}</span>
+			<span class='hud-bounce-value'>
+				<Slot get={() => String(uiState.bounceCount)} />
+			</span>
 			<button class='hud-bounce-btn' onclick={() => onBounceChange(uiState.bounceCount + 1)}>
 				+1
 			</button>
