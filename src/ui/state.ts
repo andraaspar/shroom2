@@ -1,7 +1,6 @@
 import { useState } from '../c-mp/fun/useState'
 import type { UIState } from '../game/events'
 import type { Team } from '../game/Team'
-import type { TeamMember } from '../game/TeamMember'
 
 export interface SetupTeamEntry {
 	id: number
@@ -84,4 +83,6 @@ export const uiState = useState('uiState', {
 	currentMemberName: '',
 	teamQueue: [] as Team[],
 	gameRounds: [] as unknown[],
+	teamMembers: [] as Array<{ name: string; health: number }>,
+	menuVisible: false,
 })

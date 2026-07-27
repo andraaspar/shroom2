@@ -1,18 +1,24 @@
+import { $when, Show } from '../c-mp/comp/Show'
 import { defineComponent } from '../c-mp/fun/defineComponent'
 import { useEffect } from '../c-mp/fun/useEffect'
 import { mutateState } from '../c-mp/fun/useState'
-import { $when, Show } from '../c-mp/comp/Show'
 import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
-import { GameUIImpl } from '../ui/GameUIImpl'
-import { uiState } from '../ui/state'
-import { ModalHostComp } from '../ui/ModalHostComp'
-import { StartScreenComp, programBusSymbol } from '../ui/StartScreenComp'
-import { GameSetupComp } from '../ui/GameSetupComp'
 import { Camera } from '../render/Camera'
 import { WorldRenderer } from '../render/WorldRenderer'
-import type { SetupTeamEntry, SetupRoundWeightEntry } from '../ui/state'
-import type { GameRound, RoundCtor } from '../game/rounds/GameRound'
+import { GameMenuComp } from '../ui/GameMenuComp'
+import { GameSetupComp } from '../ui/GameSetupComp'
+import { GameUIImpl } from '../ui/GameUIImpl'
+import { HudBounceComp } from '../ui/HudBounceComp'
+import { HudEndTurnComp } from '../ui/HudEndTurnComp'
+import { HudMessagesComp } from '../ui/HudMessagesComp'
+import { HudRoundsComp } from '../ui/HudRoundsComp'
+import { HudTeamQueueComp } from '../ui/HudTeamQueueComp'
+import { HudTeamWindowComp } from '../ui/HudTeamWindowComp'
+import { MenuButtonsComp } from '../ui/MenuButtonsComp'
+import { ModalHostComp } from '../ui/ModalHostComp'
+import { StartScreenComp, programBusSymbol } from '../ui/StartScreenComp'
+import { uiState } from '../ui/state'
 
 const ROUND_DISPLAY_NAMES: Record<string, string> = {
 	MoveRound: 'Moving',
@@ -217,6 +223,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 						case 'teamSelectionChanged':
 							mutateState('AppComp', 'teamSelectionChanged', () => {
 								uiState.currentTeamName = msg.team?.name ?? ''
+								uiState.teamMembers = msg.team?.members.map(m => ({ name: m.name, health: m.health })) ?? []
 							})
 							break
 					}
@@ -258,6 +265,19 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				class='ccc_canvas'
 				style={() => uiState.screen !== 'game' ? { display: 'none' } : { display: 'block' }}
 			/>
+			<div
+				class='hud-container'
+				style={() => uiState.screen !== 'game' ? { display: 'none' } : { display: 'block' }}
+			>
+				<HudRoundsComp />
+				<HudTeamQueueComp />
+				<HudTeamWindowComp />
+				<HudBounceComp />
+				<HudEndTurnComp />
+				<HudMessagesComp />
+				<MenuButtonsComp />
+				<GameMenuComp />
+			</div>
 			<ModalHostComp getGameUI={() => gameUIImpl} />
 		</div>
 	)
