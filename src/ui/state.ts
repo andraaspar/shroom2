@@ -1,4 +1,5 @@
 import { useState } from '../c-mp/fun/useState'
+import type { Point } from '../game/geom/Point'
 import type { UIState } from '../game/events'
 import type { Team } from '../game/Team'
 
@@ -85,4 +86,5 @@ export const uiState = useState('uiState', {
 	gameRounds: [] as unknown[],
 	teamMembers: [] as Array<{ name: string; health: number }>,
 	menuVisible: false,
+	shunpoOptions: [] as Point[],
 })
