@@ -264,7 +264,7 @@ export class Game {
 				if (mbToP.newTeamAppearance) { this.setTeamAppearance(mbToP.newTeamAppearance); setupChanged = true }
 				if (!isNaN(mbToP.newTeamController)) { this.editedTeam!.controller = mbToP.newTeamController; setupChanged = true }
 				if (!isNaN(mbToP.newTeamAILevel)) { this.editedTeam!.aiLevel = mbToP.newTeamAILevel; setupChanged = true }
-				if (mbToP.removeTeamRequested) { this.removeEditedTeam(); setupChanged = true }
+				if (mbToP.removeTeamRequested) { this.editTeamByID(mbToP.removeTeamRequestedID); this.removeEditedTeam(); setupChanged = true }
 				if (mbToP.membersPerTeam) {
 					this.membersPerTeam = Math.max(1, Math.min(99, mbToP.membersPerTeam))
 					this.toUI.push({ type: 'membersPerTeam', value: this.membersPerTeam })

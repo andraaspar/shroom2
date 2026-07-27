@@ -1,6 +1,7 @@
 import type { Terrain } from './Terrain.ts'
 import type { WorldForce } from './WorldForce.ts'
 import type { WorldObject } from './WorldObject.ts'
+import { TeamMember } from './TeamMember.ts'
 
 /**
  * 1:1 port of com.pirkadat.logic.World.
@@ -97,6 +98,13 @@ export class World {
 		}
 		this.objects.splice(lo, 0, object)
 	}
+}
+
+export function findSelectedMember(world: World): TeamMember | null {
+	for (const object of world.objects) {
+		if (object instanceof TeamMember && object.isSelected && object.health > 0) return object
+	}
+	return null
 }
 
 function objectSorter(a: WorldObject, b: WorldObject): number {

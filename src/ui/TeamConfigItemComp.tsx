@@ -70,8 +70,7 @@ const TeamConfigItemComp = defineComponent<TeamConfigItemCompProps>('TeamConfigI
 	}
 
 	const onRemove = () => {
-		programBus?.push({ type: 'editTeam', id: props.getIndex() })
-		programBus?.push({ type: 'removeTeamRequested' })
+		programBus?.push({ type: 'removeTeamRequested', id: props.getIndex() })
 	}
 
 	return (

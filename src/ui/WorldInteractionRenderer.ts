@@ -5,6 +5,7 @@ import type { WorldInteraction } from './WorldInteraction'
 import type { UIState } from '../game/events'
 import { UI_STATE } from '../game/events'
 import type { Point } from '../game/geom/Point'
+import { findSelectedMember } from '../game/World'
 
 const CROSSHAIR_RADIUS = 12
 const SHUNPO_RADIUS = 10
@@ -18,7 +19,7 @@ export class WorldInteractionRenderer {
 		uiStateVal: UIState,
 		shunpoOptions: Point[],
 	): void {
-		const selectedMember = this.findSelectedMember(world)
+		const selectedMember = findSelectedMember(world)
 
 		ctx.save()
 		camera.applyTo(ctx)
@@ -40,13 +41,6 @@ export class WorldInteractionRenderer {
 		}
 
 		ctx.restore()
-	}
-
-	private findSelectedMember(world: World): TeamMember | null {
-		for (const object of world.objects) {
-			if (object instanceof TeamMember && object.isSelected && object.health > 0) return object
-		}
-		return null
 	}
 
 	private renderCrosshair(

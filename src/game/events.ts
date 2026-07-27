@@ -42,7 +42,7 @@ export type ToProgram =
 	| { type: 'weightModifyRound'; roundClass: string; newWeight: number }
 	| { type: 'addTeamRequested' }
 	| { type: 'editTeam'; id: number; name?: string; controller?: number; aiLevel?: number }
-	| { type: 'removeTeamRequested' }
+	| { type: 'removeTeamRequested'; id: number }
 	| { type: 'addTeamMemberRequested' }
 	| { type: 'editTeamMember'; id: number }
 	| { type: 'removeTeamMemberRequested' }

@@ -53,6 +53,7 @@ export class FrameCommands {
 	newEditTeamID = NaN
 	newEditTeamName: string | null = null
 	removeTeamRequested = false
+	removeTeamRequestedID = NaN
 	newTeamController = NaN
 	newTeamAILevel = NaN
 
@@ -159,6 +160,7 @@ export class FrameCommands {
 				break
 			case 'removeTeamRequested':
 				this.removeTeamRequested = true
+				this.removeTeamRequestedID = message.id
 				break
 			case 'addTeamMemberRequested':
 				this.addTeamMemberRequested = true

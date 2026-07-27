@@ -5,7 +5,6 @@ import { mutateState } from '../c-mp/fun/useState'
 import { GameLoop } from '../game/GameLoop'
 import { Program } from '../game/Program'
 import { Camera } from '../render/Camera'
-import { TeamMember } from '../game/TeamMember'
 import { Team } from '../game/Team'
 import { WorldRenderer } from '../render/WorldRenderer'
 import { GameMenuComp } from '../ui/GameMenuComp'
@@ -25,6 +24,7 @@ import { WorldInteraction } from '../ui/WorldInteraction'
 import { WorldInteractionRenderer } from '../ui/WorldInteractionRenderer'
 import { UI_STATE, type UIState } from '../game/events'
 import { Point } from '../game/geom/Point'
+import { findSelectedMember } from '../game/World'
 
 const ROUND_DISPLAY_NAMES: Record<string, string> = {
 	MoveRound: 'Moving',
@@ -97,13 +97,6 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		let lastResizeW = 0
 		let lastResizeH = 0
 
-		function findSelectedMember(world: typeof program.game.world): TeamMember | null {
-			for (const object of world.objects) {
-				if (object instanceof TeamMember && object.isSelected && object.health > 0) return object
-			}
-			return null
-		}
-
 		// --- Pan / zoom: middle-click and right-click drag, scroll wheel zoom ---
 		let dragLast: { x: number; y: number } | null = null
 		const onMouseDown = (e: MouseEvent) => {
@@ -158,7 +151,9 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				worldInteraction.crosshairRelease(program.toProgram)
 			}
 
-			worldInteraction.walkDragEnd(program.toProgram)
+			if (uiState.uiState === UI_STATE.MOVE) {
+				worldInteraction.walkDragEnd(program.toProgram)
+			}
 		}
 		const onMouseMove = (e: MouseEvent) => {
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
@@ -202,11 +197,16 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			)
 		}
 		const onContextMenu = (e: MouseEvent) => e.preventDefault()
+		const onMouseLeave = () => {
+			worldInteraction.hoveredMember = null
+			worldInteraction.hoveredShunpoIndex = -1
+		}
 		canvas.addEventListener('mousedown', onMouseDown)
 		addEventListener('mouseup', onMouseUp)
 		canvas.addEventListener('mousemove', onMouseMove)
 		canvas.addEventListener('wheel', onWheel, { passive: false })
 		canvas.addEventListener('contextmenu', onContextMenu)
+		canvas.addEventListener('mouseleave', onMouseLeave)
 
 		// --- Keyboard debug UI ---
 		const keyMap: Record<string, { down: () => void; up: () => void }> = {
@@ -243,6 +243,8 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
 			const binding = keyMap[e.key]
 			if (!binding) return
+			const target = e.target as HTMLElement
+			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return
 			e.preventDefault()
 			if (!e.repeat) binding.down()
 		}
@@ -378,7 +380,6 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				ctx.clearRect(0, 0, canvas.width, canvas.height)
 				renderer.render(ctx, world, camera)
 				interactionRenderer.render(ctx, world, camera, worldInteraction, uiState.uiState as UIState, uiState.shunpoOptions)
-				program.toUI.clear()
 			},
 		)
 		loop.start()
@@ -393,6 +394,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			canvas?.removeEventListener('mousemove', onMouseMove)
 			canvas?.removeEventListener('wheel', onWheel)
 			canvas?.removeEventListener('contextmenu', onContextMenu)
+			canvas?.removeEventListener('mouseleave', onMouseLeave)
 		}
 	})
 
