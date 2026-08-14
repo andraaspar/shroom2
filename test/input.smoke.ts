@@ -57,12 +57,16 @@ function drain(): ToProgram[] {
 	return messages
 }
 
-// --- Regression 2: crosshairMove pushes a [0,1] power, never NaN. ---
-interaction.crosshairMove(new Point(1100, 500), camera, bus, member)
+// --- Regression 2: dragging the crosshair pushes a [0,1] power, never NaN. ---
+interaction.syncCrosshair(member)
+const crossAt = interaction.crosshairWorld
+assert(crossAt !== null, 'syncCrosshair pins the crosshair at the member')
+assert(interaction.crosshairPress(crossAt!, camera, member) === true, 'pressing on the cross starts an aim drag')
+interaction.crosshairDrag(new Point(1100, 500), camera, bus, member)
 const aimMessages = drain()
 const powerMessage = aimMessages.find((m) => m.type === 'newPowerMultiplier')
-assert(powerMessage !== undefined, 'crosshairMove pushes newPowerMultiplier with newAim')
-assert(aimMessages.some((m) => m.type === 'newAim'), 'crosshairMove pushes newAim')
+assert(powerMessage !== undefined, 'crosshairDrag pushes newPowerMultiplier with newAim')
+assert(aimMessages.some((m) => m.type === 'newAim'), 'crosshairDrag pushes newAim')
 
 // Apply exactly as ShootRound.STATE_AIM does.
 const commands = new FrameCommands()
@@ -72,14 +76,14 @@ if (!isNaN(commands.newAim)) {
 	member.facing = commands.newFacing
 	if (!isNaN(commands.newPowerMultiplier)) member.powerMultiplier = commands.newPowerMultiplier
 }
-assert(Number.isNaN(member.powerMultiplier) === false, 'powerMultiplier is not NaN after crosshairMove')
+assert(Number.isNaN(member.powerMultiplier) === false, 'powerMultiplier is not NaN after crosshairDrag')
 assert(member.powerMultiplier >= 0 && member.powerMultiplier <= 1, `powerMultiplier in [0,1] (got ${member.powerMultiplier})`)
 
-// Close cursor -> low power; far cursor -> power 1.
-interaction.crosshairMove(new Point(1010, 500), camera, bus, member)
+// Close drag -> low power; far drag -> power 1.
+interaction.crosshairDrag(new Point(1010, 500), camera, bus, member)
 const closePower = drain().find((m) => m.type === 'newPowerMultiplier')
 assert(closePower !== undefined && closePower.value >= 0 && closePower.value < 0.5, 'small drag gives low power')
-interaction.crosshairMove(new Point(1200, 500), camera, bus, member)
+interaction.crosshairDrag(new Point(1200, 500), camera, bus, member)
 const farPower = drain().find((m) => m.type === 'newPowerMultiplier')
 assert(farPower !== undefined && farPower.value === 1, 'far drag gives full power')
 

@@ -101,17 +101,13 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		// WorldWindow.onMouseDown / onMouseUp / onMouseWheel ---
 		let cameraMouseDown = false
 		const onMouseDown = (e: MouseEvent) => {
-			if (uiState.controller !== Team.CONTROLLER_HUMAN && e.button === 0) return
-			if (e.button === 0) program.toProgram.push({ type: 'iAmHere' })
+			// Single-pointer interaction: only the primary (left) button acts on the canvas.
+			if (e.button !== 0) return
+			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
+			program.toProgram.push({ type: 'iAmHere' })
 
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
 			const uiStateVal = uiState.uiState
-
-			if (e.button === 1 || e.button === 2) {
-				camera.onMouseDown(screenPos.x, screenPos.y)
-				cameraMouseDown = true
-				return
-			}
 
 			if (uiStateVal === UI_STATE.MOVE) {
 				worldInteraction.walkDragStart(screenPos, camera, program.game.world, program.toProgram)
@@ -125,14 +121,22 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			}
 
 			if (uiStateVal === UI_STATE.AIM) {
+				const selectedMember = findSelectedMember(program.game.world)
+				// Grabbing the cross starts an aim/strength drag (never a fire).
+				const grabbed = selectedMember
+					? worldInteraction.crosshairPress(screenPos, camera, selectedMember)
+					: false
+				if (grabbed) return
+
 				const member = worldInteraction.hitTestMember(screenPos, camera, program.game.world)
 				const selectedTeam = program.game.currentRound?.selectedTeam ?? null
-				// Only a same-team member starts a new selection; clicking an
-				// enemy or empty space starts the power-up instead.
+				// Only a same-team member starts a new selection; a press on an
+				// enemy or empty space drags the screen (firing is Space-only).
 				if (member && member.team === selectedTeam) {
 					program.toProgram.push({ type: 'newSelectedTeamMember', member })
 				} else {
-					worldInteraction.crosshairClick(program.toProgram)
+					camera.onMouseDown(screenPos.x, screenPos.y)
+					cameraMouseDown = true
 				}
 				return
 			}
@@ -168,8 +172,8 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				cameraMouseDown = false
 			}
 
-			if (e.button === 0 && uiState.uiState === UI_STATE.AIM) {
-				worldInteraction.crosshairRelease(program.toProgram)
+			if (e.button === 0 && uiState.uiState === UI_STATE.AIM && worldInteraction.isCrosshairDragging) {
+				worldInteraction.crosshairReleaseDrag()
 			}
 
 			if (uiState.uiState === UI_STATE.MOVE) {
@@ -200,7 +204,11 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			if (uiStateVal === UI_STATE.AIM) {
 				const selectedMember = findSelectedMember(program.game.world)
 				if (selectedMember) {
-					worldInteraction.crosshairMove(screenPos, camera, program.toProgram, selectedMember)
+					if (worldInteraction.isCrosshairDragging) {
+						worldInteraction.crosshairDrag(screenPos, camera, program.toProgram, selectedMember)
+					} else {
+						worldInteraction.syncCrosshair(selectedMember)
+					}
 				}
 				worldInteraction.hoveredMember = worldInteraction.hitTestMember(screenPos, camera, program.game.world)
 				return
@@ -219,7 +227,9 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		}
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault()
-			camera.onMouseWheel(Math.sign(e.deltaY) * 3)
+			// DOM deltaY is negative on scroll-up; the original's +delta zooms in,
+			// so flip the sign so scroll-up zooms in.
+			camera.onMouseWheel(-Math.sign(e.deltaY) * 3)
 		}
 		const onContextMenu = (e: MouseEvent) => e.preventDefault()
 		const onMouseLeave = () => {
@@ -421,6 +431,12 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				}
 				camera.update(uiState.uiState as UIState, world)
 				ctx.clearRect(0, 0, canvas.width, canvas.height)
+				if (uiState.uiState === UI_STATE.AIM) {
+					const sel = findSelectedMember(world)
+					if (sel) worldInteraction.syncCrosshair(sel)
+				} else {
+					worldInteraction.hideCrosshair()
+				}
 				renderer.render(ctx, world, camera)
 				interactionRenderer.render(ctx, world, camera, worldInteraction, uiState.uiState as UIState, uiState.shunpoOptions)
 			},

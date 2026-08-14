@@ -10,6 +10,8 @@ const DRAG_THRESHOLD = 5
 const WALK_SPEED_ZONE = 25
 /** CrossHair.as:21 — full power at this many px past the member. */
 const MAX_POWER_DISTANCE = 100
+/** CrossHair cross grab radius, in device pixels (the cross is a TrueSize overlay). */
+const CROSSHAIR_GRAB_RADIUS = 22
 
 export class WorldInteraction {
 	isDragging = false
@@ -23,6 +25,11 @@ export class WorldInteraction {
 
 	isAiming = false
 	crosshairWorld: Point | null = null
+	/** True while the cross is held down with the cursor (CrossHair.crossPressed/crossDrag). */
+	isCrosshairDragging = false
+	crossDragOffsetX = 0
+	crossDragOffsetY = 0
+	crosshairMember: TeamMember | null = null
 
 	hoveredMember: TeamMember | null = null
 	hoveredShunpoIndex = -1
@@ -131,35 +138,99 @@ export class WorldInteraction {
 		this.dragTime = 0
 	}
 
-	crosshairMove(screenPos: Point, camera: Camera, bus: MessageBus<ToProgram>, member: TeamMember): void {
+	/** Keep the crosshair pinned at the member's current aim/strength when idle. */
+	syncCrosshair(member: TeamMember): void {
+		if (this.isCrosshairDragging) return
+		this.showCrosshair(member)
+	}
+
+	showCrosshair(member: TeamMember): void {
+		this.crosshairMember = member
+		this.isAiming = true
+		this.crosshairWorld = this.homeCrossWorld(member)
+	}
+
+	hideCrosshair(): void {
+		this.isAiming = false
+		this.crosshairWorld = null
+		this.crosshairMember = null
+		this.isCrosshairDragging = false
+	}
+
+	/** CrossHair.setAngleAndPower — the cross position for the member's aim/power. */
+	private homeCrossWorld(member: TeamMember): Point {
+		const dist = member.radius + member.powerMultiplier * (MAX_POWER_DISTANCE - member.radius)
+		const p = Point.polar(dist, member.aim)
+		p.x *= member.facing
+		return member.location.add(p)
+	}
+
+	/** CrossHair.crossPressed — grab the cross to start aiming; returns true if grabbed. */
+	crosshairPress(screenPos: Point, camera: Camera, member: TeamMember): boolean {
+		if (member.team?.controller !== Team.CONTROLLER_HUMAN) return false
+
+		if (this.crosshairMember !== member || !this.crosshairWorld) this.showCrosshair(member)
+
+		const cross = this.crosshairWorld!
+		const crossScreen = camera.worldToScreen(cross)
+		const dx = screenPos.x - crossScreen.x
+		const dy = screenPos.y - crossScreen.y
+		if (dx * dx + dy * dy > CROSSHAIR_GRAB_RADIUS * CROSSHAIR_GRAB_RADIUS) return false
+
+		const cursorWorld = camera.screenToWorld(screenPos)
+		this.crossDragOffsetX = cross.x - cursorWorld.x
+		this.crossDragOffsetY = cross.y - cursorWorld.y
+		this.isCrosshairDragging = true
+		return true
+	}
+
+	/** CrossHair.crossDrag — move the grabbed cross and publish aim/strength. */
+	crosshairDrag(screenPos: Point, camera: Camera, bus: MessageBus<ToProgram>, member: TeamMember): void {
+		if (!this.isCrosshairDragging) return
 		if (member.team?.controller !== Team.CONTROLLER_HUMAN) return
 
-		const worldPos = camera.screenToWorld(screenPos)
-		this.crosshairWorld = worldPos.clone()
+		const cursorWorld = camera.screenToWorld(screenPos)
+		const result = this.resolveCross(
+			cursorWorld.x + this.crossDragOffsetX,
+			cursorWorld.y + this.crossDragOffsetY,
+			member,
+		)
+		this.crosshairWorld = new Point(result.x, result.y)
+		this.crosshairMember = member
 		this.isAiming = true
 
-		const dx = worldPos.x - member.location.x
-		const dy = worldPos.y - member.location.y
+		bus.push({ type: 'newAim', angle: result.angle, facing: result.facing })
+		bus.push({ type: 'newPowerMultiplier', value: result.power })
+	}
 
-		// CrossHair.as:147-151 — facing from the sign of the cursor offset,
-		// angle over the facing-mirrored vector so up-left aims up-left.
+	/** CrossHair.crossReleased — finalize the aim/strength at the released position. */
+	crosshairReleaseDrag(): void {
+		this.isCrosshairDragging = false
+	}
+
+	/** Resolves the clamped cross position for a raw target point around the member. */
+	private resolveCross(crossX: number, crossY: number, member: TeamMember) {
+		const dx = crossX - member.location.x
+		const dy = crossY - member.location.y
 		const facing: 1 | -1 = dx > 0 ? 1 : -1
 		const angle = Math.atan2(dy, dx * facing)
-
-		// CrossHair.as:152-168 — power from radial drag distance.
-		const dist = Math.sqrt(dx * dx + dy * dy)
-		const power = Math.max(0, Math.min(1, (dist - member.radius) / (MAX_POWER_DISTANCE - member.radius)))
-
-		bus.push({ type: 'newAim', angle, facing })
-		bus.push({ type: 'newPowerMultiplier', value: power })
-	}
-
-	crosshairClick(bus: MessageBus<ToProgram>): void {
-		bus.push({ type: 'fire1Changed', active: true })
-	}
-
-	crosshairRelease(bus: MessageBus<ToProgram>): void {
-		bus.push({ type: 'fire1Changed', active: false })
+		let dist = Math.sqrt(dx * dx + dy * dy)
+		let power: number
+		if (dist < member.radius) {
+			dist = member.radius
+			power = 0
+		} else {
+			power = Math.max(0, Math.min(1, (dist - member.radius) / (MAX_POWER_DISTANCE - member.radius)))
+		}
+		const p = Point.polar(dist, angle)
+		p.x *= facing
+		return {
+			x: member.location.x + p.x,
+			y: member.location.y + p.y,
+			angle,
+			facing,
+			power,
+		}
 	}
 
 	hitTestMember(screenPos: Point, camera: Camera, world: World): TeamMember | null {
