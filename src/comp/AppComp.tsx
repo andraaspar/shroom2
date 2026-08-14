@@ -98,12 +98,35 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		let lastResizeH = 0
 
 		// --- Camera pan / zoom: empty-space drag + wheel target zoom. Replicates
-		// WorldWindow.onMouseDown / onMouseUp / onMouseWheel ---
+		// WorldWindow.onMouseDown / onMouseUp / onMouseWheel, driven by Pointer Events
+		// with a single active pointer and no button discrimination.
 		let cameraMouseDown = false
-		const onMouseDown = (e: MouseEvent) => {
-			// Single-pointer interaction: only the primary (left) button acts on the canvas.
-			if (e.button !== 0) return
+		let activePointerId: number | null = null
+
+		const finishPointer = () => {
+			// Complete a camera pan, then fall through so a release after
+			// panning still fires / releases the walk (Regression 11).
+			if (cameraMouseDown) {
+				camera.onMouseUp()
+				cameraMouseDown = false
+			}
+
+			if (uiState.uiState === UI_STATE.AIM && worldInteraction.isCrosshairDragging) {
+				worldInteraction.crosshairReleaseDrag()
+			}
+
+			if (uiState.uiState === UI_STATE.MOVE) {
+				worldInteraction.walkDragEnd(program.toProgram, camera)
+			}
+		}
+
+		const onPointerDown = (e: PointerEvent) => {
 			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
+			// Single pointer: ignore additional pointers while one interaction is active.
+			if (activePointerId !== null) return
+			activePointerId = e.pointerId
+			canvas!.setPointerCapture(e.pointerId)
+			e.preventDefault()
 			program.toProgram.push({ type: 'iAmHere' })
 
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
@@ -164,23 +187,28 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			camera.onMouseDown(screenPos.x, screenPos.y)
 			cameraMouseDown = true
 		}
-		const onMouseUp = (e: MouseEvent) => {
-			// Complete a camera pan, then fall through so a release after
-			// panning still fires / releases the walk (Regression 11).
-			if (cameraMouseDown) {
-				camera.onMouseUp()
-				cameraMouseDown = false
+		const onPointerUp = (e: PointerEvent) => {
+			if (e.pointerId !== activePointerId) return
+			activePointerId = null
+			try {
+				if (canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId)
+			} catch {
+				// ignore
 			}
-
-			if (e.button === 0 && uiState.uiState === UI_STATE.AIM && worldInteraction.isCrosshairDragging) {
-				worldInteraction.crosshairReleaseDrag()
-			}
-
-			if (uiState.uiState === UI_STATE.MOVE) {
-				worldInteraction.walkDragEnd(program.toProgram, camera)
-			}
+			finishPointer()
 		}
-		const onMouseMove = (e: MouseEvent) => {
+		const onPointerCancel = (e: PointerEvent) => {
+			if (e.pointerId !== activePointerId) return
+			activePointerId = null
+			try {
+				if (canvas!.hasPointerCapture(e.pointerId)) canvas!.releasePointerCapture(e.pointerId)
+			} catch {
+				// ignore
+			}
+			finishPointer()
+		}
+		const onPointerMove = (e: PointerEvent) => {
+			if (activePointerId !== null && e.pointerId !== activePointerId) return
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
 
 			// The camera drag resolves inside Camera.update() from the pointer.
@@ -232,16 +260,19 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			camera.onMouseWheel(-Math.sign(e.deltaY) * 3)
 		}
 		const onContextMenu = (e: MouseEvent) => e.preventDefault()
-		const onMouseLeave = () => {
+		const onPointerLeave = (e: PointerEvent) => {
+			// A captured drag keeps running; only clear hover when truly leaving.
+			if (e.pointerId === activePointerId) return
 			worldInteraction.hoveredMember = null
 			worldInteraction.hoveredShunpoIndex = -1
 		}
-		canvas.addEventListener('mousedown', onMouseDown)
-		addEventListener('mouseup', onMouseUp)
-		canvas.addEventListener('mousemove', onMouseMove)
+		canvas.addEventListener('pointerdown', onPointerDown)
+		canvas.addEventListener('pointerup', onPointerUp)
+		canvas.addEventListener('pointercancel', onPointerCancel)
+		canvas.addEventListener('pointermove', onPointerMove)
 		canvas.addEventListener('wheel', onWheel, { passive: false })
 		canvas.addEventListener('contextmenu', onContextMenu)
-		canvas.addEventListener('mouseleave', onMouseLeave)
+		canvas.addEventListener('pointerleave', onPointerLeave)
 
 		// --- Keyboard debug UI ---
 		const keyMap: Record<string, { down: () => void; up: () => void }> = {
@@ -448,12 +479,13 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			removeEventListener('resize', resize)
 			removeEventListener('keydown', onKeyDown)
 			removeEventListener('keyup', onKeyUp)
-			removeEventListener('mouseup', onMouseUp)
-			canvas?.removeEventListener('mousedown', onMouseDown)
-			canvas?.removeEventListener('mousemove', onMouseMove)
+			canvas?.removeEventListener('pointerdown', onPointerDown)
+			canvas?.removeEventListener('pointerup', onPointerUp)
+			canvas?.removeEventListener('pointercancel', onPointerCancel)
+			canvas?.removeEventListener('pointermove', onPointerMove)
 			canvas?.removeEventListener('wheel', onWheel)
 			canvas?.removeEventListener('contextmenu', onContextMenu)
-			canvas?.removeEventListener('mouseleave', onMouseLeave)
+			canvas?.removeEventListener('pointerleave', onPointerLeave)
 		}
 	})
 
