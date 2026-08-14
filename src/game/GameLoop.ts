@@ -1,11 +1,12 @@
 /**
- * Fixed-timestep game loop, matching the original's ENTER_FRAME + 0.04s step.
+ * Fixed-timestep game loop: the simulation advances in STEP_SECONDS (1/60s)
+ * increments, retuned from the original's ENTER_FRAME + 0.04s (25 fps) step,
+ * so the real-time pace is unchanged while motion updates at 60 FPS.
  *
- * The simulation always advances in exactly 40ms increments (the original
- * assumes 25 fps and advances World.currentTime by .04 per frame), so
- * physics stays deterministic regardless of display refresh rate.
+ * Physics stays deterministic regardless of display refresh rate.
  */
-export const STEP_SECONDS = 0.04
+import { STEP_SECONDS } from './step.ts'
+export { STEP_SECONDS }
 const MAX_FRAME_SECONDS = 0.25 // avoid spiral of death after tab was hidden
 
 export class GameLoop {

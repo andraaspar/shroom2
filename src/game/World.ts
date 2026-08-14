@@ -1,3 +1,4 @@
+import { STEP_SECONDS } from './step.ts'
 import type { Terrain } from './Terrain.ts'
 import type { WorldForce } from './WorldForce.ts'
 import type { WorldObject } from './WorldObject.ts'
@@ -39,7 +40,7 @@ export class World {
 	}
 
 	execute(): void {
-		this.currentTime += 0.04
+		this.currentTime += STEP_SECONDS
 
 		while (this.objects.length) {
 			if (this.objectsSortDirty) {

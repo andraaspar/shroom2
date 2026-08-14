@@ -1,5 +1,6 @@
 import { Point } from './geom/Point.ts'
 import { Shot } from './Shot.ts'
+import { STEP_SECONDS } from './step.ts'
 import type { Team } from './Team.ts'
 import type { World } from './World.ts'
 import { WorldObject } from './WorldObject.ts'
@@ -39,7 +40,7 @@ export class TeslaBall extends Shot {
 
 		if (this.hasFinishedWorking || this.nextDamageTime > currentTime) return
 
-		this.nextDamageTime = currentTime + 0.04
+		this.nextDamageTime = currentTime + STEP_SECONDS
 
 		if (!this.isGhost) this.damageCoords = []
 

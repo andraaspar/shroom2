@@ -1,5 +1,6 @@
 import { AirWalkForce } from './AirWalkForce.ts'
 import { DOUBLE_PI, HALF_PI, PI, Point } from './geom/Point.ts'
+import { STEP_SECONDS } from './step.ts'
 import type { Team } from './Team.ts'
 import type { World } from './World.ts'
 import type { WorldForce } from './WorldForce.ts'
@@ -124,7 +125,7 @@ export class WorldObject {
 			this.wayPoints.push(this.location.clone())
 			this.wayPointsClearedTime = currentTime
 			this.hasBeenNotified = true
-		} else if (this.wayPointsClearedTime + 0.04 < currentTime) {
+		} else if (this.wayPointsClearedTime + STEP_SECONDS < currentTime) {
 			this.wayPoints = []
 			this.wayPointsClearedTime = currentTime
 		}
@@ -180,7 +181,7 @@ export class WorldObject {
 		}
 
 		let timeTillNotify = 1 / this.stepsPerSecond
-		if (timeTillNotify >= 0.04) timeTillNotify = 0.03999
+		if (timeTillNotify >= STEP_SECONDS) timeTillNotify = STEP_SECONDS - 0.00001
 		this.timeToNotify = this.lastTimeNotified + timeTillNotify
 	}
 
@@ -259,7 +260,7 @@ export class WorldObject {
 
 		if (!this.isWalking) return false
 
-		const xStep = this.facing * this.walkingSpeed * Math.min(this.timeDelta, 0.04)
+		const xStep = this.facing * this.walkingSpeed * Math.min(this.timeDelta, STEP_SECONDS)
 
 		const usableFloors = this.findUsableFloors(
 			this.location.x + xStep,

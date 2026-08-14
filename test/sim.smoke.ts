@@ -31,8 +31,8 @@ ball.location.x = 1000
 ball.location.y = 100
 world.addWorldObject(ball)
 
-// Simulate 10 seconds (250 steps of 0.04s).
-for (let i = 0; i < 250; i++) {
+// Simulate 10 seconds (600 steps of 1/60s).
+for (let i = 0; i < 600; i++) {
 	world.execute()
 }
 
@@ -50,7 +50,7 @@ assert(world.checkIfSleeping(), 'world is sleeping')
 assert(Number.isInteger(ball.health), `health stays integral after a terrain impact (health=${ball.health})`)
 assert(ball.health === 70, `ball took fall damage like the original (health=${ball.health}, expected 70)`)
 
-// Second scenario: walking.
+// Second scenario: walking. 60 steps = 1 second of walking at 60 FPS.
 const walker = new WorldObject(world)
 walker.name = 'Walker'
 walker.health = 100
@@ -62,7 +62,7 @@ walker.startWalking(1)
 world.addWorldObject(walker)
 
 const startX = walker.location.x
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < 60; i++) {
 	world.execute()
 }
 

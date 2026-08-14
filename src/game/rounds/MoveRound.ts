@@ -1,4 +1,5 @@
 import { Gravity } from '../Gravity.ts'
+import { STEP_SECONDS } from '../step.ts'
 import { Team } from '../Team.ts'
 import { TeamMember } from '../TeamMember.ts'
 import { UI_STATE } from '../events.ts'
@@ -242,7 +243,7 @@ export class MoveRound extends GameRound {
 				walker.startWalking(this.aiMemberMoveDirection)
 			}
 
-			let nextFrameWorldTime = aiMember.world!.currentTime + 0.04
+			let nextFrameWorldTime = aiMember.world!.currentTime + STEP_SECONDS
 
 			while (walker.timeToNotify < nextFrameWorldTime && !walker.hasFinishedWorking) {
 				walker.notify(walker.timeToNotify)
@@ -264,7 +265,7 @@ export class MoveRound extends GameRound {
 							walker.stopWalking()
 						}
 
-						nextFrameWorldTime += 0.04
+						nextFrameWorldTime += STEP_SECONDS
 					}
 					walker.notify(walker.timeToNotify)
 				}
@@ -286,7 +287,7 @@ export class MoveRound extends GameRound {
 			jumper.notify(jumper.timeToNotify)
 			jumper.stopJumping()
 
-			nextFrameWorldTime = aiMember.world!.currentTime + 0.04
+			nextFrameWorldTime = aiMember.world!.currentTime + STEP_SECONDS
 
 			while (!jumper.hasFinishedWorking) {
 				if (jumper.timeToNotify > nextFrameWorldTime) {
@@ -296,7 +297,7 @@ export class MoveRound extends GameRound {
 						jumper.stopWalking()
 					}
 
-					nextFrameWorldTime += 0.04
+					nextFrameWorldTime += STEP_SECONDS
 				}
 				jumper.notify(jumper.timeToNotify)
 			}

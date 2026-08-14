@@ -28,7 +28,7 @@ export class Program {
 		this.game = new Game(this.toUI, this.ui)
 	}
 
-	/** One fixed simulation step (0.04s), matching the original onFrameEntered. */
+	/** One fixed simulation step (STEP_SECONDS = 1/60s). */
 	execute(): void {
 		this.commands = new FrameCommands()
 		this.toProgram.drain((message) => {
