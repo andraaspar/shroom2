@@ -18,6 +18,9 @@ export class WorldInteraction {
 	dragDirection: 1 | -1 | 0 = 0
 	isDraggingJumping = false
 
+	/** Frame counter for the drag; mirrors WalkDrag.dragTime (WalkDrag.as:22). */
+	dragTime = 0
+
 	isAiming = false
 	crosshairWorld: Point | null = null
 
@@ -30,9 +33,12 @@ export class WorldInteraction {
 		if (!member) return
 
 		// WalkDrag.as:56-65 — pressing an unselected same-team member selects
-		// it before the drag begins.
+		// it before the drag begins; dragTime 12 delays the follow click release.
 		if (bus && !member.isSelected) {
 			bus.push({ type: 'newSelectedTeamMember', member })
+			this.dragTime = 12
+		} else {
+			this.dragTime = 0
 		}
 
 		this.isDragging = true
@@ -53,6 +59,12 @@ export class WorldInteraction {
 
 	walkDragMove(screenPos: Point, camera: Camera, bus: MessageBus<ToProgram>): void {
 		if (!this.isDragging || !this.dragStartWorld || !this.dragMember) return
+
+		// WalkDrag.as:108-117 — while the camera is following, throttle the
+		// drag so an immediate press after a retarget doesn't move the member.
+		if (camera.notSafeToDragMember) this.dragTime = -12
+		this.dragTime++
+		if (this.dragTime < 0) return
 
 		const worldPos = camera.screenToWorld(screenPos)
 		const deltaX = worldPos.x - this.dragStartWorld.x
@@ -98,8 +110,12 @@ export class WorldInteraction {
 		}
 	}
 
-	walkDragEnd(bus: MessageBus<ToProgram>): void {
+	walkDragEnd(bus: MessageBus<ToProgram>, camera?: Camera): void {
 		if (!this.isDragging) return
+
+		// WalkDrag.as:98-104 — a short click on the member re-requests camera
+		// follow (recenter on the member).
+		if (camera && this.dragTime < 12) camera.followAOI()
 
 		if (this.dragDirection === 1) bus.push({ type: 'rightChanged', active: false })
 		else if (this.dragDirection === -1) bus.push({ type: 'leftChanged', active: false })
@@ -112,6 +128,7 @@ export class WorldInteraction {
 		this.dragStartWorld = null
 		this.dragMember = null
 		this.dragDirection = 0
+		this.dragTime = 0
 	}
 
 	crosshairMove(screenPos: Point, camera: Camera, bus: MessageBus<ToProgram>, member: TeamMember): void {

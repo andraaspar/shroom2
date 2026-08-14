@@ -97,21 +97,30 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		let lastResizeW = 0
 		let lastResizeH = 0
 
-		// --- Pan / zoom: middle-click and right-click drag, scroll wheel zoom ---
-		let dragLast: { x: number; y: number } | null = null
+		// --- Camera pan / zoom: empty-space drag + wheel target zoom. Replicates
+		// WorldWindow.onMouseDown / onMouseUp / onMouseWheel ---
+		let cameraMouseDown = false
 		const onMouseDown = (e: MouseEvent) => {
 			if (uiState.controller !== Team.CONTROLLER_HUMAN && e.button === 0) return
 			if (e.button === 0) program.toProgram.push({ type: 'iAmHere' })
-			if (e.button === 1 || e.button === 2) {
-				dragLast = { x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio }
-				return
-			}
 
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
 			const uiStateVal = uiState.uiState
 
+			if (e.button === 1 || e.button === 2) {
+				camera.onMouseDown(screenPos.x, screenPos.y)
+				cameraMouseDown = true
+				return
+			}
+
 			if (uiStateVal === UI_STATE.MOVE) {
 				worldInteraction.walkDragStart(screenPos, camera, program.game.world, program.toProgram)
+				// A press on empty space pans the world (the original's WalkDrag
+				// only stops propagation over a member).
+				if (!worldInteraction.isDragging) {
+					camera.onMouseDown(screenPos.x, screenPos.y)
+					cameraMouseDown = true
+				}
 				return
 			}
 
@@ -147,32 +156,37 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				return
 			}
 
-			if (uiStateVal === UI_STATE.OVERVIEW || uiStateVal === UI_STATE.FOCUS) {
-				dragLast = { x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio }
-			}
+			// OVERVIEW / FOCUS
+			camera.onMouseDown(screenPos.x, screenPos.y)
+			cameraMouseDown = true
 		}
 		const onMouseUp = (e: MouseEvent) => {
-			// Clear a pan drag, then fall through so a release after panning
-			// still fires / releases the walk (Regression 11).
-			if (dragLast) dragLast = null
+			// Complete a camera pan, then fall through so a release after
+			// panning still fires / releases the walk (Regression 11).
+			if (cameraMouseDown) {
+				camera.onMouseUp()
+				cameraMouseDown = false
+			}
 
 			if (e.button === 0 && uiState.uiState === UI_STATE.AIM) {
 				worldInteraction.crosshairRelease(program.toProgram)
 			}
 
 			if (uiState.uiState === UI_STATE.MOVE) {
-				worldInteraction.walkDragEnd(program.toProgram)
+				worldInteraction.walkDragEnd(program.toProgram, camera)
 			}
 		}
 		const onMouseMove = (e: MouseEvent) => {
 			const screenPos = new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio)
-			const uiStateVal = uiState.uiState
 
-			if (dragLast) {
-				camera.panByScreenDelta(screenPos.x - dragLast.x, screenPos.y - dragLast.y)
-				dragLast = { x: screenPos.x, y: screenPos.y }
+			// The camera drag resolves inside Camera.update() from the pointer.
+			if (camera.isDragged) {
+				camera.pointerX = screenPos.x
+				camera.pointerY = screenPos.y
 				return
 			}
+
+			const uiStateVal = uiState.uiState
 
 			if (uiStateVal === UI_STATE.MOVE) {
 				if (worldInteraction.isDragging) {
@@ -205,10 +219,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		}
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault()
-			camera.zoomAt(
-				new Point(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio),
-				e.deltaY < 0 ? 1.1 : 1 / 1.1,
-			)
+			camera.onMouseWheel(Math.sign(e.deltaY) * 3)
 		}
 		const onContextMenu = (e: MouseEvent) => e.preventDefault()
 		const onMouseLeave = () => {
@@ -394,14 +405,21 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 					lastResizeW = canvas.clientWidth
 					lastResizeH = canvas.clientHeight
 					resize()
+					if (world.terrain) {
+						camera.onStageResized(world.terrain.width, world.terrain.height)
+					}
 				}
 
 				if (!cameraInitialized && world.terrain) {
-					camera.center.x = world.terrain.width / 2
-					camera.center.y = world.terrain.height / 2
-					camera.fitToTerrain(world.terrain.width, world.terrain.height)
+					camera.onStageResized(world.terrain.width, world.terrain.height)
+					camera.x = camera.viewportWidth / 2 - (world.terrain.width / 2) * camera.scale
+					camera.y = camera.viewportHeight / 2 - (world.terrain.height / 2) * camera.scale
+					camera.targetScale = camera.minScale
+					camera.waitToFollowAOI = 0
+					camera.playerControlsScale = false
 					cameraInitialized = true
 				}
+				camera.update(uiState.uiState as UIState, world)
 				ctx.clearRect(0, 0, canvas.width, canvas.height)
 				renderer.render(ctx, world, camera)
 				interactionRenderer.render(ctx, world, camera, worldInteraction, uiState.uiState as UIState, uiState.shunpoOptions)
