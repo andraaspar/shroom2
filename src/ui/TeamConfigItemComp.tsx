@@ -75,7 +75,7 @@ const TeamConfigItemComp = defineComponent<TeamConfigItemCompProps>('TeamConfigI
 
 	return (
 		<div class={() => ['team-item', isEdited() && 'team-item-selected']}>
-			<input class='team-name-input' value={team().name} oninput={onNameChange} />
+			<input class='team-name-input' value={() => team().name} oninput={onNameChange} />
 			<div class='team-member-count'>
 				<button onclick={onMemberDec}>-</button>
 				<span><Slot get={() => String(uiState.setupMembersPerTeam)} /></span>

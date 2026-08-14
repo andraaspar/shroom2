@@ -101,6 +101,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 		let dragLast: { x: number; y: number } | null = null
 		const onMouseDown = (e: MouseEvent) => {
 			if (uiState.controller !== Team.CONTROLLER_HUMAN && e.button === 0) return
+			if (e.button === 0) program.toProgram.push({ type: 'iAmHere' })
 			if (e.button === 1 || e.button === 2) {
 				dragLast = { x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio }
 				return
@@ -110,13 +111,16 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			const uiStateVal = uiState.uiState
 
 			if (uiStateVal === UI_STATE.MOVE) {
-				worldInteraction.walkDragStart(screenPos, camera, program.game.world)
+				worldInteraction.walkDragStart(screenPos, camera, program.game.world, program.toProgram)
 				return
 			}
 
 			if (uiStateVal === UI_STATE.AIM) {
 				const member = worldInteraction.hitTestMember(screenPos, camera, program.game.world)
-				if (member) {
+				const selectedTeam = program.game.currentRound?.selectedTeam ?? null
+				// Only a same-team member starts a new selection; clicking an
+				// enemy or empty space starts the power-up instead.
+				if (member && member.team === selectedTeam) {
 					program.toProgram.push({ type: 'newSelectedTeamMember', member })
 				} else {
 					worldInteraction.crosshairClick(program.toProgram)
@@ -125,7 +129,13 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			}
 
 			if (uiStateVal === UI_STATE.SHUNPO) {
-				const option = worldInteraction.hitTestShunpoOption(screenPos, camera, uiState.shunpoOptions)
+				const selectedMember = findSelectedMember(program.game.world)
+				const option = worldInteraction.hitTestShunpoOption(
+					screenPos,
+					camera,
+					uiState.shunpoOptions,
+					selectedMember,
+				)
 				if (option) {
 					program.toProgram.push({ type: 'shunpoRequested', at: option })
 				} else {
@@ -137,15 +147,14 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				return
 			}
 
-			if (uiStateVal === UI_STATE.OVERVIEW || uiStateVal === UI_STATE.FOCUS || uiStateVal === UI_STATE.SHOOT) {
+			if (uiStateVal === UI_STATE.OVERVIEW || uiStateVal === UI_STATE.FOCUS) {
 				dragLast = { x: e.offsetX * devicePixelRatio, y: e.offsetY * devicePixelRatio }
 			}
 		}
 		const onMouseUp = (e: MouseEvent) => {
-			if (dragLast) {
-				dragLast = null
-				return
-			}
+			// Clear a pan drag, then fall through so a release after panning
+			// still fires / releases the walk (Regression 11).
+			if (dragLast) dragLast = null
 
 			if (e.button === 0 && uiState.uiState === UI_STATE.AIM) {
 				worldInteraction.crosshairRelease(program.toProgram)
@@ -184,7 +193,12 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 			}
 
 			if (uiStateVal === UI_STATE.SHUNPO) {
-				worldInteraction.hoveredShunpoIndex = worldInteraction.hitTestShunpoOptionIndex(screenPos, camera, uiState.shunpoOptions)
+				worldInteraction.hoveredShunpoIndex = worldInteraction.hitTestShunpoOptionIndex(
+					screenPos,
+					camera,
+					uiState.shunpoOptions,
+					findSelectedMember(program.game.world),
+				)
 				worldInteraction.hoveredMember = worldInteraction.hitTestMember(screenPos, camera, program.game.world)
 				return
 			}
@@ -234,17 +248,27 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				down: () => program.toProgram.push({ type: 'endTurnRequested' }),
 				up: () => {},
 			},
-			Tab: {
-				down: () => program.toProgram.push({ type: 'switchMemberRequested' }),
-				up: () => {},
+			Shift: {
+				down: () => program.toProgram.push({ type: 'special1Changed', active: true }),
+				up: () => program.toProgram.push({ type: 'special1Changed', active: false }),
 			},
 		}
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (uiState.controller !== Team.CONTROLLER_HUMAN) return
-			const binding = keyMap[e.key]
-			if (!binding) return
 			const target = e.target as HTMLElement
 			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return
+
+			if (e.key === 'Tab') {
+				e.preventDefault()
+				if (!e.repeat) {
+					if (e.shiftKey) program.toProgram.push({ type: 'switchMemberReverseRequested' })
+					else program.toProgram.push({ type: 'switchMemberRequested' })
+				}
+				return
+			}
+
+			const binding = keyMap[e.key]
+			if (!binding) return
 			e.preventDefault()
 			if (!e.repeat) binding.down()
 		}
@@ -375,6 +399,7 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				if (!cameraInitialized && world.terrain) {
 					camera.center.x = world.terrain.width / 2
 					camera.center.y = world.terrain.height / 2
+					camera.fitToTerrain(world.terrain.width, world.terrain.height)
 					cameraInitialized = true
 				}
 				ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -409,19 +434,18 @@ export const AppComp = defineComponent<{}>('AppComp', (props, $) => {
 				class='ccc_canvas'
 				style={() => uiState.screen !== 'game' ? { display: 'none' } : { display: 'block' }}
 			/>
-			<div
-				class='hud-container'
-				style={() => uiState.screen !== 'game' ? { display: 'none' } : { display: 'block' }}
-			>
-				<HudRoundsComp />
-				<HudTeamQueueComp />
-				<HudTeamWindowComp />
-				<HudBounceComp />
-				<HudEndTurnComp />
-				<HudMessagesComp />
-				<MenuButtonsComp />
-				<GameMenuComp />
-			</div>
+			<Show it={$when(() => uiState.screen === 'game', () => (
+				<div class='hud-container'>
+					<HudRoundsComp />
+					<HudTeamQueueComp />
+					<Show it={$when(() => uiState.teamWindowVisible, HudTeamWindowComp)} />
+					<Show it={$when(() => uiState.bounceWindowVisible, HudBounceComp)} />
+					<HudEndTurnComp />
+					<Show it={$when(() => uiState.messageBox.text, HudMessagesComp)} />
+					<MenuButtonsComp />
+					<Show it={$when(() => uiState.menuVisible, GameMenuComp)} />
+				</div>
+			))} />
 			<ModalHostComp getGameUI={() => gameUIImpl} />
 		</div>
 	)

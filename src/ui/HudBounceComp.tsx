@@ -12,7 +12,7 @@ const HudBounceComp = defineComponent('HudBounceComp', (_props, $) => {
 	}
 
 	return (
-		<div class='hud-bounce' style={() => uiState.bounceWindowVisible ? {} : { display: 'none' }}>
+		<div class='hud-bounce'>
 			<button class='hud-bounce-btn' onclick={() => onBounceChange(uiState.bounceCount - 1)}>
 				-1
 			</button>

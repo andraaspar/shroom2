@@ -463,7 +463,7 @@ export class Game {
 	}
 
 	editTeamByID(id: number): void {
-		if (id >= this.teams.length || id < 0) {
+		if (!Number.isInteger(id) || id >= this.teams.length || id < 0) {
 			this.editedTeam = null
 		} else {
 			this.editedTeam = this.teams[id]!

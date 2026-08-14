@@ -95,11 +95,12 @@ export class Shot extends WorldObject {
 			damage = Math.min(object.health, damage)
 			if (damage > 0) {
 				if (object.team === this.team) {
-					this.friendlyDamage += damage
-					if (this.owner) this.owner.friendlyDamage += damage
+					// AS3 friendlyDamage/enemyDamage are int; every += truncates.
+					this.friendlyDamage = Math.trunc(this.friendlyDamage + damage)
+					if (this.owner) this.owner.friendlyDamage = Math.trunc(this.owner.friendlyDamage + damage)
 				} else {
-					this.enemyDamage += damage
-					if (this.owner) this.owner.enemyDamage += damage
+					this.enemyDamage = Math.trunc(this.enemyDamage + damage)
+					if (this.owner) this.owner.enemyDamage = Math.trunc(this.owner.enemyDamage + damage)
 				}
 				if (!this.isGhost || object.isGhost) object.damage(damage)
 			}
@@ -144,11 +145,12 @@ export class Shot extends WorldObject {
 			damage = Math.min(object.health, damage)
 			if (damage > 0) {
 				if (object.team === this.team) {
-					this.friendlyDamage += damage
-					if (this.owner) this.owner.friendlyDamage += damage
+					// AS3 friendlyDamage/enemyDamage are int; every += truncates.
+					this.friendlyDamage = Math.trunc(this.friendlyDamage + damage)
+					if (this.owner) this.owner.friendlyDamage = Math.trunc(this.owner.friendlyDamage + damage)
 				} else {
-					this.enemyDamage += damage
-					if (this.owner) this.owner.enemyDamage += damage
+					this.enemyDamage = Math.trunc(this.enemyDamage + damage)
+					if (this.owner) this.owner.enemyDamage = Math.trunc(this.owner.enemyDamage + damage)
 				}
 				if (!this.isGhost || object.isGhost) object.damage(damage)
 			}

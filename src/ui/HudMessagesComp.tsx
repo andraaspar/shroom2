@@ -42,7 +42,7 @@ const HudMessagesComp = defineComponent('HudMessagesComp', (_props, $) => {
 				const isPersistent = uiState.messageBox.time < 0
 				const fadeOut = !isPersistent && remaining < 500
 				const opacityVal = fadeOut ? remaining / 500 : 1
-				return { opacity: String(opacityVal), display: text ? undefined : 'none' }
+				return { opacity: String(opacityVal) }
 			}}
 		>
 			<span class='hud-messages-text'>

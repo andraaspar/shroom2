@@ -22,6 +22,13 @@ export class Camera {
 		this.viewportHeight = height
 	}
 
+	/** Scales so the whole terrain is framed within the current viewport. */
+	fitToTerrain(terrainWidth: number, terrainHeight: number): void {
+		if (!this.viewportWidth || !this.viewportHeight || !terrainWidth || !terrainHeight) return
+		const scale = Math.min(this.viewportWidth / terrainWidth, this.viewportHeight / terrainHeight)
+		this.scale = Math.max(this.minScale, Math.min(this.maxScale, scale))
+	}
+
 	worldToScreen(world: Point, out = new Point()): Point {
 		out.x = (world.x - this.center.x) * this.scale + this.viewportWidth / 2
 		out.y = (world.y - this.center.y) * this.scale + this.viewportHeight / 2

@@ -2,3 +2,4 @@
 @import './start-screen.css' layer(ui);
 @import './setup-screen.css' layer(ui);
 @import './hud-screen.css' layer(ui);
+@import './modal.css' layer(ui);

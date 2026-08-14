@@ -28,11 +28,13 @@ game.commands = new FrameCommands()
 game.execute()
 assert(game.state === Game.STATE_SETUP, 'game reaches SETUP')
 
-// Keep only 2 teams (the constructor creates 5) via the public command path.
-while (game.teams.length > 2) {
+// Keep only 2 teams (the constructor creates 5) via the public command path,
+// exactly as the real UI pushes removeTeamRequested (id included).
+let trimGuard = 100
+while (game.teams.length > 2 && trimGuard-- > 0) {
 	game.commands = new FrameCommands()
-	game.commands.newEditTeamID = game.teams.length - 1
 	game.commands.removeTeamRequested = true
+	game.commands.removeTeamRequestedID = game.teams.length - 1
 	game.execute()
 	toUI.clear()
 }

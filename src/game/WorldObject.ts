@@ -577,6 +577,10 @@ export class WorldObject {
 	}
 
 	damage(value: number): void {
+		// AS3 damage(value:int) coerces the argument with int() at the call
+		// boundary (truncating toward zero) *before* the guards below, so
+		// 0 < value < 1 deals no damage at all. Mirror that exactly.
+		value = Math.trunc(value)
 		if (this.hasFinishedWorking) return
 		if (this.health <= 0) return
 		if (value <= 0) return
@@ -591,6 +595,8 @@ export class WorldObject {
 	protected onLanded(): void {}
 
 	heal(value: number): void {
+		// AS3 heal(value:int) — same int truncation at the call boundary.
+		value = Math.trunc(value)
 		if (this.hasFinishedWorking) return
 
 		this.health += value

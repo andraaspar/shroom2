@@ -226,7 +226,11 @@ export class ShootRound extends GameRound {
 				if (!isNaN(mbToP.newAim)) {
 					this.selectedTeam!.selectedMember!.aim = mbToP.newAim
 					this.selectedTeam!.selectedMember!.facing = mbToP.newFacing
-					this.selectedTeam!.selectedMember!.powerMultiplier = mbToP.newPowerMultiplier
+					// Apply power only when a real value was provided (AI writes it
+					// with newAim; the human crosshair always pushes it together).
+					if (!isNaN(mbToP.newPowerMultiplier)) {
+						this.selectedTeam!.selectedMember!.powerMultiplier = mbToP.newPowerMultiplier
+					}
 				}
 
 				if (mbToP.switchMemberRequested) {
@@ -247,7 +251,7 @@ export class ShootRound extends GameRound {
 			case ShootRound.STATE_PREPARE:
 				this.game.toUI.push({
 					type: 'newMessageBox',
-					text: 'Firing in... ' + Math.floor(this.timeLimit - this.game.world.currentTime + 1),
+					text: 'Firing in... ' + Math.trunc(this.timeLimit - this.game.world.currentTime + 1),
 					time: -1,
 				})
 
@@ -323,32 +327,34 @@ export class ShootRound extends GameRound {
 		this.step++
 
 		if (this.aimGenerator) {
-			// The original runs the aim thread through FakeThread with a ~30ms
-			// per-frame budget; mirror that here.
-			const stopAfter = Date.now() + 30
-			do {
-				const result = this.aimGenerator.next()
-				if (result.done) {
-					this.aimGenerator = null
-					this.aimThreadCallBack()
-					break
-				}
-			} while (Date.now() < stopAfter)
+			// The original registers aimThread with Program's FakeThread,
+			// which advances it once per frame *before* command consumption
+			// (Program.as:71), so a switchMemberRequested it sets is consumed by
+			// that same frame's STATE_AIM block. Mirror that exactly: step the
+			// generator once per doAI() call, never spinning on it.
+			const result = this.aimGenerator.next()
+			if (result.done) {
+				this.aimGenerator = null
+				this.aimThreadCallBack()
+			}
 		}
 	}
 
 	/**
 	 * 1:1 port of the original aimThread FakeThread closure, as a generator
 	 * stepped once per doAI() call.
+	 *
+	 * NOTE: this generator lives across many frames (Program allocates a fresh
+	 * FrameCommands bag each step and reassigns game.commands), so it must
+	 * read the command bag freshly via this.game.commands on every resumption
+	 * rather than capturing it once.
 	 */
 	private *aimThread(): Generator<void> {
-		const mbToP = this.game.commands
-
 		while (true) {
 			// Wait for member switch check
 
 			if (this.waitForMemberSwitch) {
-				if (mbToP.switchMemberRequested) {
+				if (this.game.commands.switchMemberRequested) {
 					yield
 					continue
 				} else {
@@ -372,7 +378,7 @@ export class ShootRound extends GameRound {
 			if (
 				(this.memberIsOnLeft && this.facing < -1) ||
 				(!this.memberIsOnLeft && this.facing > 1) ||
-				mbToP.humanIsBored
+				this.game.commands.humanIsBored
 			) {
 				// Facing loop ended.
 
@@ -385,19 +391,20 @@ export class ShootRound extends GameRound {
 					if (this.bestShot.powerMultiplier > 1) this.bestShot.powerMultiplier = 1
 					if (this.bestShot.powerMultiplier < 0) this.bestShot.powerMultiplier = 0
 
-					mbToP.newAim = this.bestShot.aim
-					mbToP.newFacing = this.bestShot.facing
-					mbToP.newBounceCount = this.bestShot.bounceCount
-					if (!this.bestShot.damageRatio && this.bestShot.friendlyDamage) mbToP.newPowerMultiplier = 0
-					else mbToP.newPowerMultiplier = this.bestShot.powerMultiplier
+					this.game.commands.newAim = this.bestShot.aim
+					this.game.commands.newFacing = this.bestShot.facing
+					this.game.commands.newBounceCount = this.bestShot.bounceCount
+					if (!this.bestShot.damageRatio && this.bestShot.friendlyDamage)
+						this.game.commands.newPowerMultiplier = 0
+					else this.game.commands.newPowerMultiplier = this.bestShot.powerMultiplier
 
 					this.game.ui.log(this.member!.name, this.bestShot)
 				} else {
-					mbToP.newPowerMultiplier = 0
+					this.game.commands.newPowerMultiplier = 0
 				}
 
 				this.membersMoved.push(this.member!)
-				mbToP.switchMemberRequested = true
+				this.game.commands.switchMemberRequested = true
 
 				this.bestShot = null
 				this.waitForMemberSwitch = true

@@ -26,15 +26,15 @@ export class Terrain {
 	}
 
 	isSolid(x: number, y: number): boolean {
-		const xi = x | 0
-		const yi = y | 0
+		const xi = Math.floor(x)
+		const yi = Math.floor(y)
 		if (xi < 0 || yi < 0 || xi >= this.width || yi >= this.height) return false
 		return this.data[yi * this.width + xi]! >= 128
 	}
 
 	set(x: number, y: number, solid: boolean): void {
-		const xi = x | 0
-		const yi = y | 0
+		const xi = Math.floor(x)
+		const yi = Math.floor(y)
 		if (xi < 0 || yi < 0 || xi >= this.width || yi >= this.height) return
 		this.data[yi * this.width + xi] = solid ? 255 : 0
 		this.isDirty = true
@@ -46,8 +46,10 @@ export class Terrain {
 	 * `topLeft` overlaps a solid terrain pixel.
 	 */
 	hitTestMap(hitMap: Uint8Array, mapSize: number, topLeftX: number, topLeftY: number): boolean {
-		const ox = topLeftX | 0
-		const oy = topLeftY | 0
+		// Round the origin the same way subtractMap does, so the hole you punch
+		// is the hole you collide against (Regression 13).
+		const ox = Math.round(topLeftX)
+		const oy = Math.round(topLeftY)
 		for (let my = 0; my < mapSize; my++) {
 			const ty = oy + my
 			if (ty < 0 || ty >= this.height) continue

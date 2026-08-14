@@ -5,7 +5,7 @@ import { uiState } from './state'
 
 const HudTeamWindowComp = defineComponent('HudTeamWindowComp', (_props, $) => {
 	return (
-		<div class='hud-team-window' style={() => uiState.teamWindowVisible ? {} : { display: 'none' }}>
+		<div class='hud-team-window'>
 			<h3 class='hud-team-window-title'><Slot get={() => uiState.currentTeamName} /></h3>
 			<div class='hud-team-window-members'>
 				<For

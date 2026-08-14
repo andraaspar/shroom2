@@ -46,8 +46,9 @@ assert(
 assert(Math.abs(ball.velocity.x) < 1 && Math.abs(ball.velocity.y) < 1, 'ball is at rest')
 assert(world.checkIfSleeping(), 'world is sleeping')
 // Fall from y=100 to y=700: impact speed ~693 > damageResistance 500, so the
-// original takes (693-500)/6 ~ 32 damage too. This asserts faithful behavior.
-assert(ball.health < 100 && ball.health > 50, `ball took fall damage like the original (health=${ball.health.toFixed(1)})`)
+// original takes (693-500)/6 ~ 32 damage too. AS3 int() makes it exact.
+assert(Number.isInteger(ball.health), `health stays integral after a terrain impact (health=${ball.health})`)
+assert(ball.health === 70, `ball took fall damage like the original (health=${ball.health}, expected 70)`)
 
 // Second scenario: walking.
 const walker = new WorldObject(world)
@@ -68,5 +69,22 @@ for (let i = 0; i < 25; i++) {
 assert(walker.location.x > startX + 50, `walker moved right (x=${walker.location.x.toFixed(2)} from ${startX})`)
 assert(Math.abs(walker.location.y - (700 - walker.radius)) < 2, 'walker stays on the surface')
 assert(walker.stamina < 1, `walking burns stamina (stamina=${walker.stamina.toFixed(3)})`)
+
+// Regression 5: damage()/heal() must keep AS3 int() semantics.
+const victim = new WorldObject()
+victim.health = 100
+victim.damage(0.5)
+assert(victim.health === 100, 'damage(0.5) truncates to 0 and deals no damage')
+victim.damage(33.7)
+assert(victim.health === 67, 'damage(33.7) removes exactly 33')
+for (let i = 0; i < 1000; i++) {
+	victim.damage(0.3)
+}
+assert(victim.health === 67, 'repeated 0.3-per-hit chip damage never kills')
+victim.health = 50
+victim.damage(1.9)
+assert(victim.health === 49, 'damage(1.9) removes exactly 1 (int truncation)')
+victim.heal(4.6)
+assert(victim.health === 53, 'heal(4.6) adds exactly 4 (int truncation)')
 
 console.log('\nAll smoke tests passed.')

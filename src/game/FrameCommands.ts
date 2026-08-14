@@ -180,6 +180,12 @@ export class FrameCommands {
 			case 'helpRequested':
 				this.helpRequested = true
 				break
+			case 'allAssetsDownloaded':
+				this.allAssetsDownloaded = true
+				break
+			case 'newSelectedTeamMember':
+				this.newSelectedTeamMember = message.member
+				break
 			case 'editTeamAppearance':
 				this.editTeamAppearanceId = message.id
 				this.editTeamAppearanceIndex = message.appearanceIndex
